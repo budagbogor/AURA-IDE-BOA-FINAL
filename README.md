@@ -18,7 +18,7 @@ IDE ini bukan sekadar editor kode; ini adalah **ekosistem pengembangan lengkap**
 ## 🚀 Keunggulan Utama
 
 ### 🧠 Dual-Engine AI Intelligence
-*   **Multi-Provider AI:** Dukungan penuh untuk Google Gemini 2.0 (Flash & Pro), OpenRouter (Claude 3.5 Sonnet, GPT-4o), dan Bytez.
+*   **Multi-Provider AI:** Dukungan penuh untuk Google Gemini 2.0 (Flash & Pro), OpenRouter (Claude 3.5 Sonnet, GPT-4o), Bytez, dan **SumoPod AI**.
 *   **Context7 Mode:** AI dapat memahami seluruh konteks proyek Anda, bukan hanya file yang sedang dibuka.
 *   **AI Skills System:** Gunakan perintah cepat `/explain`, `/refactor`, dan `/fix` untuk efisiensi maksimal.
 
@@ -62,7 +62,11 @@ IDE ini bukan sekadar editor kode; ini adalah **ekosistem pengembangan lengkap**
    npm install
    ```
 3. **Konfigurasi API Key:**
-   Edit file `.env.local` atau masukkan key langsung melalui menu **Settings** di dalam IDE.
+   Edit file `.env.local` atau masukkan key langsung melalui menu **Settings** di dalam IDE. Mendukung provider:
+*   Google Gemini (Native)
+*   OpenRouter (Aggregator)
+*   Bytez (Enterprise)
+*   **SumoPod** (Latest 2026 Models: Gemini 2.5, Claude 4.5, GPT-5)
 4. **Jalankan aplikasi:**
    ```bash
    npm run dev
