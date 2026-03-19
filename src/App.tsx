@@ -20,12 +20,20 @@ import {
   Sparkles,
   Send,
   User,
-  Bot
+  Bot,
+  FolderOpen,
+  Save,
+  Github,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ai } from './services/geminiService';
+import { FREE_MODELS, generateOpenRouterContent, fetchFreeModels, type OpenRouterModel } from './services/openRouterService';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -49,13 +57,20 @@ export default function App() {
     { id: '2', name: 'index.css', content: 'body { background: #1e1e1e; }', language: 'css' },
   ]);
   const [activeFileId, setActiveFileId] = useState<string>('1');
-  const [sidebarTab, setSidebarTab] = useState<'files' | 'search' | 'ai'>('files');
+  const [sidebarTab, setSidebarTab] = useState<'files' | 'search' | 'ai' | 'github' | 'settings'>('files');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: 'Welcome to **Aura AI IDE**. I am your coding assistant. How can I help you today?' }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [terminalOutput, setTerminalOutput] = useState<string[]>(['Aura Terminal v1.0.0', 'Ready for input...']);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [editorFontSize, setEditorFontSize] = useState(14);
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'openrouter'>('gemini');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash');
+  const [openRouterModel, setOpenRouterModel] = useState('auto-free');
+  const [dynamicFreeModels, setDynamicFreeModels] = useState<OpenRouterModel[]>(FREE_MODELS);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
@@ -63,6 +78,25 @@ export default function App() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  useEffect(() => {
+    if (aiProvider === 'openrouter') {
+      refreshModels();
+    }
+  }, [aiProvider]);
+
+  const refreshModels = async () => {
+    setIsFetchingModels(true);
+    try {
+      const models = await fetchFreeModels();
+      // Keep "Smart Auto-Select" at the top
+      setDynamicFreeModels([FREE_MODELS[0], ...models.filter(m => m.id !== 'auto-free')]);
+    } catch (error) {
+      console.error('Failed to refresh models:', error);
+    } finally {
+      setIsFetchingModels(false);
+    }
+  };
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
@@ -79,27 +113,37 @@ export default function App() {
     setIsAiLoading(true);
 
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: `You are an expert AI coding assistant. 
+      let content = '';
+      const prompt = `You are an expert AI coding assistant. 
             Current File: ${activeFile.name} (${activeFile.language})
             Content:
             ${activeFile.content}
             
             User Request:
-            ${chatInput}` }],
-          },
-        ],
-      });
+            ${chatInput}`;
 
-      const assistantMsg: ChatMessage = { role: 'assistant', content: response.text || 'Sorry, I couldn\'t generate a response.' };
+      if (aiProvider === 'gemini') {
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+        });
+        content = response.text || 'Sorry, I couldn\'t generate a response.';
+      } else {
+        const apiKey = process.env.OPENROUTER_API_KEY || '';
+        if (!apiKey) throw new Error('OpenRouter API Key is missing in secrets.');
+        content = await generateOpenRouterContent(openRouterModel, prompt, apiKey);
+      }
+
+      const assistantMsg: ChatMessage = { role: 'assistant', content: content };
       setChatMessages(prev => [...prev, assistantMsg]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Error:', error);
-      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Error: Failed to connect to AI service.' }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message || 'Failed to connect to AI service.'}` }]);
     } finally {
       setIsAiLoading(false);
     }
@@ -114,6 +158,50 @@ export default function App() {
     };
     setFiles([...files, newFile]);
     setActiveFileId(newFile.id);
+  };
+
+  const openFolder = async () => {
+    try {
+      // @ts-ignore - File System Access API
+      const dirHandle = await window.showDirectoryPicker();
+      const newFiles: FileItem[] = [];
+      
+      async function scan(handle: any) {
+        for await (const entry of handle.values()) {
+          if (entry.kind === 'file') {
+            const file = await entry.getFile();
+            const content = await file.text();
+            const ext = file.name.split('.').pop();
+            newFiles.push({
+              id: Math.random().toString(36).substr(2, 9),
+              name: file.name,
+              content: content,
+              language: ext === 'ts' || ext === 'tsx' ? 'typescript' : ext === 'js' || ext === 'jsx' ? 'javascript' : ext || 'plaintext'
+            });
+          }
+        }
+      }
+      
+      await scan(dirHandle);
+      if (newFiles.length > 0) {
+        setFiles(newFiles);
+        setActiveFileId(newFiles[0].id);
+        setTerminalOutput(prev => [...prev, `Opened folder: ${dirHandle.name}`, `Loaded ${newFiles.length} files.`]);
+      }
+    } catch (err) {
+      console.error('Error opening folder:', err);
+      setTerminalOutput(prev => [...prev, 'Error: Could not open local folder. (Browser may block this in iframes)']);
+    }
+  };
+
+  const exportProject = async () => {
+    const zip = new JSZip();
+    files.forEach(file => {
+      zip.file(file.name, file.content);
+    });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveAs(blob, 'aura-project.zip');
+    setTerminalOutput(prev => [...prev, 'Project exported as aura-project.zip']);
   };
 
   return (
@@ -138,7 +226,16 @@ export default function App() {
         >
           <Sparkles size={24} />
         </div>
-        <div className="mt-auto p-2 text-[#858585] hover:text-white cursor-pointer">
+        <div 
+          onClick={() => setSidebarTab('github')}
+          className={cn("p-2 cursor-pointer transition-colors", sidebarTab === 'github' ? "text-white" : "text-[#858585] hover:text-white")}
+        >
+          <Github size={24} />
+        </div>
+        <div 
+          onClick={() => setSidebarTab('settings')}
+          className={cn("mt-auto p-2 cursor-pointer transition-colors", sidebarTab === 'settings' ? "text-white" : "text-[#858585] hover:text-white")}
+        >
           <Settings size={24} />
         </div>
       </div>
@@ -149,8 +246,14 @@ export default function App() {
           {sidebarTab === 'files' && 'Explorer'}
           {sidebarTab === 'search' && 'Search'}
           {sidebarTab === 'ai' && 'Aura AI Chat'}
+          {sidebarTab === 'github' && 'GitHub Integration'}
+          {sidebarTab === 'settings' && 'Settings'}
           {sidebarTab === 'files' && (
-            <Plus size={14} className="cursor-pointer hover:text-white" onClick={createNewFile} />
+            <div className="flex gap-2">
+              <Plus size={14} className="cursor-pointer hover:text-white" onClick={createNewFile} />
+              <FolderOpen size={14} className="cursor-pointer hover:text-white" onClick={openFolder} />
+              <Download size={14} className="cursor-pointer hover:text-white" onClick={exportProject} />
+            </div>
           )}
         </div>
 
@@ -175,6 +278,91 @@ export default function App() {
                     <span>{file.name}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {sidebarTab === 'settings' && (
+            <div className="p-4 flex flex-col gap-6">
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] uppercase font-bold text-[#858585]">Editor</span>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs">Font Size</label>
+                    <input 
+                      type="number" 
+                      value={editorFontSize}
+                      onChange={(e) => setEditorFontSize(Number(e.target.value))}
+                      className="bg-[#3c3c3c] border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] uppercase font-bold text-[#858585]">AI Provider</span>
+                <select 
+                  value={aiProvider}
+                  onChange={(e) => setAiProvider(e.target.value as 'gemini' | 'openrouter')}
+                  className="bg-[#3c3c3c] border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                >
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openrouter">OpenRouter (Free Models)</option>
+                </select>
+              </div>
+
+              {aiProvider === 'gemini' ? (
+                <div className="flex flex-col gap-2">
+                  <span className="text-[11px] uppercase font-bold text-[#858585]">Gemini Model</span>
+                  <select 
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="bg-[#3c3c3c] border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                    <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] uppercase font-bold text-[#858585]">OpenRouter Model</span>
+                    <button 
+                      onClick={refreshModels}
+                      disabled={isFetchingModels}
+                      className="text-[10px] text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                    >
+                      {isFetchingModels ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                  <select 
+                    value={openRouterModel}
+                    onChange={(e) => setOpenRouterModel(e.target.value)}
+                    className="bg-[#3c3c3c] border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                  >
+                    {dynamicFreeModels.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-[#858585] italic">
+                    {openRouterModel === 'auto-free' 
+                      ? "Automatically picks the best available free model with low traffic." 
+                      : "Using specific free model."}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] uppercase font-bold text-[#858585]">Environment</span>
+                <div className="flex flex-col gap-1">
+                  <div className="p-2 bg-white/5 rounded text-[10px] font-mono break-all">
+                    GEMINI_API_KEY: {process.env.GEMINI_API_KEY ? '✅ Configured' : '❌ Missing'}
+                  </div>
+                  <div className="p-2 bg-white/5 rounded text-[10px] font-mono break-all">
+                    OPENROUTER_API_KEY: {process.env.OPENROUTER_API_KEY ? '✅ Configured' : '❌ Missing'}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -228,6 +416,58 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {sidebarTab === 'github' && (
+            <div className="p-4 flex flex-col h-full gap-6">
+              {!githubConnected ? (
+                <div className="flex flex-col gap-4 text-center">
+                  <Github size={48} className="mx-auto opacity-20" />
+                  <p className="text-sm text-[#858585]">Connect your GitHub account to clone repositories and push changes.</p>
+                  <button 
+                    onClick={() => setGithubConnected(true)}
+                    className="bg-[#24292e] hover:bg-[#2c3137] text-white py-2 px-4 rounded flex items-center justify-center gap-2 text-sm transition-colors"
+                  >
+                    <Github size={16} />
+                    Connect GitHub
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                    <img src="https://github.com/identicons/aura.png" className="w-10 h-10 rounded-full" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-white">Aura Developer</span>
+                      <span className="text-xs text-[#858585]">@aura-dev</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] uppercase font-bold text-[#858585]">Clone Repository</span>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="username/repo"
+                        className="flex-1 bg-[#3c3c3c] border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                      />
+                      <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">Clone</button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-4">
+                    <span className="text-[11px] uppercase font-bold text-[#858585]">Your Repositories</span>
+                    <div className="flex flex-col gap-1">
+                      {['aura-ide', 'react-gemini-app', 'portfolio-v2'].map(repo => (
+                        <div key={repo} className="flex items-center justify-between p-2 hover:bg-white/5 rounded cursor-pointer group">
+                          <span className="text-xs">{repo}</span>
+                          <ExternalLink size={12} className="opacity-0 group-hover:opacity-100" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -266,7 +506,7 @@ export default function App() {
             value={activeFile.content}
             onChange={handleEditorChange}
             options={{
-              fontSize: 14,
+              fontSize: editorFontSize,
               minimap: { enabled: true },
               scrollBeyondLastLine: false,
               automaticLayout: true,
