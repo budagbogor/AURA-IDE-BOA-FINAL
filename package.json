@@ -3,18 +3,20 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "dev:electron": "cross-env ELECTRON=true vite",
+    "dev:tauri": "tauri dev",
     "build": "vite build",
-    "build:electron": "cross-env ELECTRON=true vite build && electron-builder",
+    "build:tauri": "tauri build",
     "build:web": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist dist-electron",
+    "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
     "@google/genai": "^1.29.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@monaco-editor/react": "^4.7.0",
@@ -36,43 +38,15 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/cli": "^2.10.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "cross-env": "^10.1.0",
-    "electron": "^41.0.3",
-    "electron-builder": "^26.8.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0",
-    "vite-plugin-electron": "^0.29.1",
-    "vite-plugin-electron-renderer": "^0.14.6"
-  },
-  "build": {
-    "appId": "com.aura.ide",
-    "productName": "Aura IDE",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist",
-      "dist-electron"
-    ],
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ]
-    }
+    "vite": "^6.2.0"
   }
 }

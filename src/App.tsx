@@ -17,6 +17,8 @@ import {
   Terminal, 
   Play,
   Cpu,
+  Smartphone,
+  Monitor,
   Sparkles,
   Send,
   User,
@@ -54,6 +56,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { getGeminiAI } from './services/geminiService';
 import { FREE_MODELS, generateOpenRouterContent, fetchFreeModels, type OpenRouterModel } from './services/openRouterService';
+import { BYTEZ_MODELS, generateBytezContent } from './services/bytezService';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -101,6 +104,8 @@ const GuideModal = ({ onClose }: { onClose: () => void }) => {
 
   const sections = [
     { id: 'intro', icon: BookOpen, title: 'Pengenalan', desc: 'Selamat datang di Aura IDE' },
+    { id: 'features', icon: Sparkles, title: 'Keunggulan Fitur', desc: 'Apa yang membuat Aura berbeda?' },
+    { id: 'roadmap', icon: Play, title: 'Roadmap & Desktop', desc: 'Build ke APK & EXE' },
     { id: 'files', icon: FolderTree, title: 'Manajemen File', desc: 'Navigasi & edit kode' },
     { id: 'ai', icon: Sparkles, title: 'Aura AI', desc: 'Asisten coding pintar' },
     { id: 'shortcuts', icon: Keyboard, title: 'Shortcut & Perintah', desc: 'Kerja lebih cepat' },
@@ -128,6 +133,46 @@ const GuideModal = ({ onClose }: { onClose: () => void }) => {
                 <li>Gunakan <strong>Command Palette</strong> untuk navigasi cepat antar fitur.</li>
                 <li>Simpan dan sinkronkan ke <strong>GitHub</strong>.</li>
               </ol>
+            </div>
+          </div>
+        );
+      case 'features':
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Sparkles className="text-yellow-400" /> Keunggulan Aura IDE
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400"><Cpu size={20} /></div>
+                <h4 className="font-bold text-white text-[14px]">Multi-Provider AI</h4>
+                <p className="text-[11px] text-gray-400 leading-relaxed">Dukungan penuh untuk Gemini, OpenRouter (Claude, GPT-4), dan Bytez dalam satu interface.</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400"><Layout size={20} /></div>
+                <h4 className="font-bold text-white text-[14px]">Premium UI & UX</h4>
+                <p className="text-[11px] text-gray-400 leading-relaxed">Desain modern bergaya AntiGravity dengan animasi halus dan efek glassmorphism yang premium.</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400"><FolderTree size={20} /></div>
+                <h4 className="font-bold text-white text-[14px]">Manajemen File Kuat</h4>
+                <p className="text-[11px] text-gray-400 leading-relaxed">Buka folder lokal, clone repo GitHub, dan kelola file dengan performa tinggi seperti aplikasi desktop.</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400"><Globe size={20} /></div>
+                <h4 className="font-bold text-white text-[14px]">Ekosistem Terintegrasi</h4>
+                <p className="text-[11px] text-gray-400 leading-relaxed">Integrasi langsung dengan GitHub, Supabase, dan protokol MCP untuk konteks pengerjaan yang lebih dalam.</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-400/20 flex items-center justify-center text-blue-300"><Maximize2 size={20} /></div>
+                <h4 className="font-bold text-white text-[14px]">Mode Tampilan Fleksibel</h4>
+                <p className="text-[11px] text-gray-400 leading-relaxed">Tersedia mode Klasik, Modern (sidebar kanan), dan Zen Mode untuk fokus pengembangan yang maksimal.</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400"><Sparkles size={20} /></div>
+                <h4 className="font-bold text-white text-[14px]">Aura Intelligence</h4>
+                <p className="text-[11px] text-gray-400 leading-relaxed">Asisten AI yang memahami konteks seluruh file proyek Anda (Context7 Mode) untuk membantu debugging & optimasi.</p>
+              </div>
             </div>
           </div>
         );
@@ -207,6 +252,49 @@ const GuideModal = ({ onClose }: { onClose: () => void }) => {
               <li><strong>2. Hubungkan Repo:</strong> Masukkan URL repositori Anda di tab GitHub.</li>
               <li><strong>3. Commit & Push:</strong> Tulis pesan commit dan klik Push untuk menyinkronkan perubahan kode Anda ke cloud.</li>
             </ul>
+          </div>
+        );
+      case 'roadmap':
+        return (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Play className="text-emerald-400" /> Roadmap & Desktop Build
+            </h3>
+            <p className="text-gray-300 leading-relaxed text-sm">
+              Ingin mengekspor proyek Anda menjadi aplikasi Windows (.exe) atau Android (.apk)? Gunakan roadmap berikut:
+            </p>
+            <div className="space-y-3 mt-4">
+              <div className="bg-white/5 p-3 rounded border border-white/10">
+                <strong className="text-blue-400 block mb-1">Desktop EXE (Gampang - Cloud Build via GitHub)</strong>
+                <ol className="list-decimal list-inside text-xs text-gray-400 space-y-2">
+                  <li>Push kode terbaru Anda ke GitHub.</li>
+                  <li>Buka tab <strong>Actions</strong> di GitHub.com.</li>
+                  <li>Pilih workflow <strong>"Build Windows EXE (Tauri)"</strong>.</li>
+                  <li>Download file <strong>.msi</strong> atau <strong>.exe</strong> dari bagian <strong>Artifacts</strong> setelah selesai.</li>
+                </ol>
+                <p className="text-[10px] text-gray-500 mt-2 italic">Metode ini tidak memerlukan instalasi Rust atau LLVM di komputer Anda.</p>
+              </div>
+              <div className="bg-white/5 p-3 rounded border border-white/10 opacity-60">
+                <strong className="text-gray-400 block mb-1">Desktop EXE (Manual - Lokal)</strong>
+                <p className="text-xs text-gray-400">Jalankan <code>npm run build:tauri</code> jika Anda sudah memiliki Rust Compiler terpasang.</p>
+              </div>
+              <div className="bg-white/5 p-3 rounded border border-white/10">
+                <strong className="text-emerald-400 block mb-1">Android APK (Gampang - Cloud Build via GitHub)</strong>
+                <ol className="list-decimal list-inside text-xs text-gray-400 space-y-2">
+                  <li>Hubungkan proyek ke GitHub di tab GitHub.</li>
+                  <li>Lakukan <strong>Commit & Push</strong> perubahan Anda.</li>
+                  <li>Buka repositori Anda di GitHub.com lalu klik tab <strong>Actions</strong>.</li>
+                  <li>Klik pada nama alur kerja (contoh: "Build Android APK") yang sedang berjalan.</li>
+                  <li>Scroll ke bawah ke bagian <strong>Artifacts</strong> setelah statusnya centang hijau.</li>
+                  <li>Klik pada file <strong>aura-ide-android-debug-apk.zip</strong> untuk men-download APK Anda.</li>
+                </ol>
+                <p className="text-[10px] text-gray-500 mt-2 italic">Metode ini tidak memerlukan instalasi Android Studio di komputer Anda.</p>
+              </div>
+              <div className="bg-white/5 p-3 rounded border border-white/10 opacity-60">
+                <strong className="text-gray-400 block mb-1">Android APK (Manual - Lokal)</strong>
+                <p className="text-xs text-gray-400">Gunakan <code>npx cap open android</code> jika Anda sudah memiliki Android Studio & SDK terpasang.</p>
+              </div>
+            </div>
           </div>
         );
       case 'settings':
@@ -303,7 +391,9 @@ export default function App() {
   const [commandInput, setCommandInput] = useState('');
   const [fileSearchInput, setFileSearchInput] = useState('');
   const [activeFileId, setActiveFileId] = useState<string>('1');
-  const activeFile = files.find(f => f.id === activeFileId) || files[0];
+  const [layoutMode, setLayoutMode] = useState<'classic' | 'modern'>('classic');
+  const activeFile = files.find(f => f.id === activeFileId) || (files.length > 0 ? files[0] : null);
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -315,7 +405,7 @@ export default function App() {
         setShowFileSearch(true);
       } else if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
-        setTerminalOutput(prev => [...prev, `[SYSTEM] File saved: ${activeFile.name}`]);
+        setTerminalOutput(prev => [...prev, `[SYSTEM] File saved: ${activeFile?.name || 'Unknown'}`]);
       } else if (e.key === 'Escape') {
         setShowCommandPalette(false);
         setShowFileSearch(false);
@@ -358,6 +448,12 @@ export default function App() {
     }
   };
 
+  const closeFolder = () => {
+    setFiles([]);
+    setActiveFileId('');
+    setTerminalOutput(prev => [...prev, 'Folder closed.']);
+  };
+
   const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('aura_supabase_url') || '');
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => localStorage.getItem('aura_supabase_key') || '');
   const [supabaseConnected, setSupabaseConnected] = useState(false);
@@ -368,11 +464,13 @@ export default function App() {
   const [newMcpName, setNewMcpName] = useState('');
   const [newMcpUrl, setNewMcpUrl] = useState('');
   const [editorFontSize, setEditorFontSize] = useState(14);
-  const [aiProvider, setAiProvider] = useState<'gemini' | 'openrouter'>('gemini');
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'openrouter' | 'bytez'>('gemini');
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('aura_gemini_key') || process.env.GEMINI_API_KEY || '');
   const [openRouterApiKey, setOpenRouterApiKey] = useState(() => localStorage.getItem('aura_openrouter_key') || process.env.OPENROUTER_API_KEY || '');
+  const [bytezApiKey, setBytezApiKey] = useState(() => localStorage.getItem('aura_bytez_key') || process.env.BYTEZ_API_KEY || '');
   const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash');
   const [openRouterModel, setOpenRouterModel] = useState('auto-free');
+  const [bytezModel, setBytezModel] = useState(BYTEZ_MODELS[0].id);
   const [dynamicFreeModels, setDynamicFreeModels] = useState<OpenRouterModel[]>(FREE_MODELS);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<{ name: string; type: string; data: string; content?: string }[]>([]);
@@ -386,10 +484,64 @@ export default function App() {
   const [browserUrl, setBrowserUrl] = useState<string>('https://www.google.com/search?igu=1');
   const [browserSrcDoc, setBrowserSrcDoc] = useState<string | null>(null);
   const [showBrowser, setShowBrowser] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<'classic' | 'modern'>('classic');
   const [zenMode, setZenMode] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Resizing State
+  const [sidebarWidth, setSidebarWidth] = useState(280);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(250);
+  const [browserWidth, setBrowserWidth] = useState(window.innerWidth / 2);
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const [isResizingBottom, setIsResizingBottom] = useState(false);
+  const [isResizingBrowser, setIsResizingBrowser] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizingSidebar) {
+        let newWidth;
+        if (layoutMode === 'modern') {
+          newWidth = window.innerWidth - e.clientX - 56; // 56 is Activity Bar width
+        } else {
+          newWidth = e.clientX - 56;
+        }
+        if (newWidth > 150 && newWidth < 600) {
+          setSidebarWidth(newWidth);
+        }
+      }
+
+      if (isResizingBottom) {
+        const newHeight = window.innerHeight - e.clientY - 24; // 24 is Status Bar height
+        if (newHeight > 100 && newHeight < window.innerHeight - 200) {
+          setBottomPanelHeight(newHeight);
+        }
+      }
+
+      if (isResizingBrowser) {
+        const newWidth = window.innerWidth - e.clientX;
+        if (newWidth > 200 && newWidth < window.innerWidth - 400) {
+          setBrowserWidth(newWidth);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+      setIsResizingBottom(false);
+      setIsResizingBrowser(false);
+      document.body.style.cursor = 'default';
+    };
+
+    if (isResizingSidebar || isResizingBottom || isResizingBrowser) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingSidebar, isResizingBottom, isResizingBrowser, layoutMode]);
 
   useEffect(() => {
     localStorage.setItem('aura_gemini_key', geminiApiKey);
@@ -398,6 +550,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('aura_openrouter_key', openRouterApiKey);
   }, [openRouterApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('aura_bytez_key', bytezApiKey);
+  }, [bytezApiKey]);
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -474,7 +630,7 @@ export default function App() {
   };
 
   const scanForProblems = async () => {
-    if (isScanning) return;
+    if (isScanning || !activeFile) return;
     setIsScanning(true);
     setBottomTab('problems');
     setProblems([]);
@@ -526,6 +682,9 @@ export default function App() {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
         });
         resultText = response.text || '[]';
+      } else if (aiProvider === 'bytez') {
+        const googleKey = geminiApiKey || process.env.GEMINI_API_KEY || '';
+        resultText = await generateBytezContent(bytezModel, prompt, bytezApiKey, googleKey);
       } else {
         const apiKey = openRouterApiKey || process.env.OPENROUTER_API_KEY || '';
         resultText = await generateOpenRouterContent(openRouterModel, prompt, apiKey);
@@ -552,7 +711,7 @@ export default function App() {
   };
 
   const handleSendMessage = async () => {
-    if (!chatInput.trim() && attachedFiles.length === 0 || isAiLoading) return;
+    if (!chatInput.trim() && attachedFiles.length === 0 || isAiLoading || !activeFile) return;
 
     const userMsg: ChatMessage = { role: 'user', content: chatInput };
     setChatMessages(prev => [...prev, userMsg]);
@@ -573,8 +732,9 @@ export default function App() {
 
       // Context7 (Deep Context)
       let deepContext = '';
-      if (context7Mode) {
-        deepContext = `\n\n[DEEP CONTEXT - CONTEXT7 MODE]
+  if (context7Mode && activeFile) {
+    deepContext = `
+[DEEP CONTEXT - CONTEXT7 MODE]
 Project Files: ${files.map(f => f.name).join(', ')}
 Active File: ${activeFile.name}
 Integrations:
@@ -582,7 +742,7 @@ Integrations:
 - Supabase: ${supabaseConnected ? 'Connected' : 'Disconnected'}
 - MCP Servers: ${mcpServers.filter(s => s.connected).map(s => s.name).join(', ') || 'None'}
 `;
-      }
+  }
 
       let prompt = `System Instruction: ${systemInstruction}
             ${skillInstruction ? `\nSkill Focus: ${skillInstruction}` : ''}
@@ -590,9 +750,9 @@ Integrations:
             ${activeCommandInstruction}
             ${deepContext}
             
-            Current File: ${activeFile.name} (${activeFile.language})
+            Current File: ${activeFile?.name || 'None'} (${activeFile?.language || 'None'})
             Content:
-            ${activeFile.content}
+            ${activeFile?.content || 'No file open.'}
             
             User Request:
             ${userMsg.content}`;
@@ -632,6 +792,9 @@ Integrations:
           ],
         });
         content = response.text || 'Sorry, I couldn\'t generate a response.';
+      } else if (aiProvider === 'bytez') {
+        const googleKey = geminiApiKey || process.env.GEMINI_API_KEY || '';
+        content = await generateBytezContent(bytezModel, prompt, bytezApiKey, googleKey, attachedFiles);
       } else {
         const apiKey = openRouterApiKey || process.env.OPENROUTER_API_KEY || '';
         if (!apiKey) throw new Error('OpenRouter API Key is missing. Please set it in Settings.');
@@ -850,7 +1013,7 @@ Integrations:
                       <span className="text-xs text-[#cccccc] group-hover:text-white transition-colors">{prob.message}</span>
                       <span className="text-[10px] text-[#858585] group-hover:text-gray-300 transition-colors">Line {prob.line}</span>
                     </div>
-                    <span className="text-[10px] text-[#858585]">{activeFile.name}</span>
+                    <span className="text-[10px] text-[#858585]">{activeFile?.name || 'Unknown'}</span>
                   </div>
                 </div>
               ))
@@ -926,10 +1089,12 @@ Integrations:
             </div>
             <div 
               onClick={() => {
-                if (files.length > 1) {
-                  setFiles(prev => prev.filter(f => f.id !== contextMenu.fileId));
-                  if (activeFileId === contextMenu.fileId) setActiveFileId(files[0].id);
+                const newFiles = files.filter(f => f.id !== contextMenu.fileId);
+                setFiles(newFiles);
+                if (activeFileId === contextMenu.fileId) {
+                  setActiveFileId(newFiles.length > 0 ? newFiles[0].id : '');
                 }
+                setContextMenu(null);
               }}
               className="flex items-center gap-2 px-3 py-2 hover:bg-red-500/20 text-red-400 rounded cursor-pointer text-[12px]"
             >
@@ -969,11 +1134,45 @@ Integrations:
               </div>
               <div className="max-h-[400px] overflow-y-auto p-2">
                 {[
+                  { icon: <Monitor size={16} />, label: 'Build Windows App (.exe) - Cloud Build (GitHub Actions)', action: () => {
+                      setTerminalOutput(prev => [...prev, 
+                        '[AURA SYSTEM] Persiapan Cloud Build Desktop...', 
+                        '1. Pastikan Anda sudah Push kode terbaru ke GitHub.', 
+                        '2. Buka tab Actions di GitHub.com.', 
+                        '3. Tunggu hingga workflow "Build Windows EXE (Tauri)" selesai.', 
+                        '4. Download hasil build (.msi) dari bagian "Artifacts".'
+                      ]);
+                      setBottomTab('terminal');
+                    } 
+                  },
+                  { icon: <Monitor size={16} />, label: 'Build Windows App (.exe) - Local (Tauri)', action: () => {
+                      setTerminalOutput(prev => [...prev, '[AURA SYSTEM] Persiapan Lokal Build Desktop (Tauri)...', 'Silakan jalankan "npm run build:tauri" di terminal lokal Anda.', 'Pastikan Rust sudah terinstall (rustup.rs).']);
+                      setBottomTab('terminal');
+                    } 
+                  },
+                  { icon: <Smartphone size={16} />, label: 'Build Android App (.apk) - Cloud Build (GitHub Actions)', action: () => {
+                      setTerminalOutput(prev => [...prev, 
+                        '[AURA SYSTEM] Persiapan Cloud Build Android...', 
+                        '1. Pastikan Anda sudah Push kode terbaru ke GitHub.', 
+                        '2. Buka tab Actions di GitHub.com.', 
+                        '3. Tunggu hingga workflow "Build Android APK" selesai (centang hijau).', 
+                        '4. Scroll ke bawah halaman tersebut ke kolom "Artifacts".', 
+                        '5. Download file "aura-ide-android-debug-apk" yang berisi file .apk Anda.'
+                      ]);
+                      setBottomTab('terminal');
+                    } 
+                  },
+                  { icon: <Smartphone size={16} />, label: 'Build Android App (.apk) - Local (Capacitor)', action: () => {
+                      setTerminalOutput(prev => [...prev, '[AURA SYSTEM] Persiapan Lokal Build Android (Capacitor)...', '1. Jalankan "npm run build" untuk update aset.', '2. Jalankan "npx cap sync" untuk sinkronisasi.', '3. Jalankan "npx cap open android" untuk membuka di Android Studio.', 'Build APK secara manual di Android Studio.']);
+                      setBottomTab('terminal');
+                    } 
+                  },
                   { icon: <Layout size={16} />, label: 'Relayout: Default', action: () => relayout('default') },
                   { icon: <Layout size={16} />, label: 'Relayout: Modern', action: () => relayout('modern') },
                   { icon: <Eye size={16} />, label: 'Relayout: Zen', action: () => relayout('zen') },
                   { icon: <FileCode size={16} />, label: 'Create New File', action: createNewFile },
                   { icon: <FolderOpen size={16} />, label: 'Open Folder', action: openFolder },
+                  { icon: <X size={16} />, label: 'Close Folder', action: closeFolder },
                   { icon: <Download size={16} />, label: 'Export Project', action: exportProject },
                   { icon: <Layout size={16} />, label: 'Toggle Layout Mode', action: () => setLayoutMode(layoutMode === 'classic' ? 'modern' : 'classic') },
                   { icon: <Eye size={16} />, label: 'Toggle Zen Mode', action: () => setZenMode(!zenMode) },
@@ -1126,13 +1325,26 @@ Integrations:
       {!zenMode && (
         <motion.div 
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 280, opacity: 1 }}
+          animate={{ width: sidebarWidth, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
+          style={{ width: sidebarWidth }}
           className={cn(
-            "w-[280px] bg-[#252526] flex flex-col overflow-hidden relative",
+            "bg-[#252526] flex flex-col overflow-hidden relative transition-[width] duration-75",
             layoutMode === 'modern' ? "border-l border-white/5" : "border-r border-white/5"
           )}
         >
+          {/* Resizer Handle (Vertical) */}
+          <div 
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizingSidebar(true);
+              document.body.style.cursor = 'col-resize';
+            }}
+            className={cn(
+              "absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/30 transition-colors z-50",
+              layoutMode === 'modern' ? "left-0" : "right-0"
+            )}
+          />
           <div className="p-4 text-[11px] uppercase tracking-widest font-black text-[#bbbbbb] flex justify-between items-center border-b border-white/5 bg-[#252526]/50 backdrop-blur-sm sticky top-0 z-10">
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse" />
@@ -1156,6 +1368,9 @@ Integrations:
                   </button>
                   <button onClick={openFolder} title="Open Folder" className="hover:text-white transition-colors">
                     <FolderOpen size={14} />
+                  </button>
+                  <button onClick={closeFolder} title="Close Folder" className="hover:text-red-400 transition-colors">
+                    <X size={14} />
                   </button>
                   <button onClick={exportProject} title="Export Project" className="hover:text-white transition-colors">
                     <Download size={14} />
@@ -1633,6 +1848,7 @@ Integrations:
                           className="w-full bg-[#3c3c3c] border border-white/5 rounded-xl py-2 px-3 text-[13px] focus:outline-none focus:border-blue-500/50 transition-all"
                         >
                           <option value="gemini">Google Gemini</option>
+                          <option value="bytez">Bytez API</option>
                           <option value="openrouter">OpenRouter</option>
                         </select>
                       </div>
@@ -1663,6 +1879,47 @@ Integrations:
                               <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
                               <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro</option>
                               <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            </select>
+                          </div>
+                        </>
+                      ) : aiProvider === 'bytez' ? (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-[12px] text-[#858585] ml-1">Bytez API Key</label>
+                            <div className="relative">
+                              <input 
+                                type="password" 
+                                value={bytezApiKey}
+                                onChange={(e) => setBytezApiKey(e.target.value)}
+                                placeholder="Enter Bytez API Key"
+                                className="w-full bg-[#3c3c3c] border border-white/5 rounded-xl py-2 px-3 text-[13px] focus:outline-none focus:border-blue-500/50 transition-all"
+                              />
+                              <Cpu size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500/50" />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[12px] text-[#858585] ml-1">Gemini API Key (Provider Key)</label>
+                            <div className="relative">
+                              <input 
+                                type="password" 
+                                value={geminiApiKey}
+                                onChange={(e) => setGeminiApiKey(e.target.value)}
+                                placeholder="Required for Gemini models on Bytez"
+                                className="w-full bg-[#3c3c3c] border border-white/5 rounded-xl py-2 px-3 text-[13px] focus:outline-none focus:border-blue-500/50 transition-all"
+                              />
+                              <Sparkles size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500/50" />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[12px] text-[#858585] ml-1">Bytez Model</label>
+                            <select 
+                              value={bytezModel}
+                              onChange={(e) => setBytezModel(e.target.value)}
+                              className="w-full bg-[#3c3c3c] border border-white/5 rounded-xl py-2 px-3 text-[13px] focus:outline-none focus:border-blue-500/50 transition-all"
+                            >
+                              {BYTEZ_MODELS.map(m => (
+                                <option key={m.id} value={m.id}>{m.name}</option>
+                              ))}
                             </select>
                           </div>
                         </>
@@ -1919,9 +2176,10 @@ Integrations:
                   className="opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded p-0.5 transition-all" 
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (files.length > 1) {
-                      setFiles(files.filter(f => f.id !== file.id));
-                      if (activeFileId === file.id) setActiveFileId(files[0].id);
+                    const newFiles = files.filter(f => f.id !== file.id);
+                    setFiles(newFiles);
+                    if (activeFileId === file.id) {
+                      setActiveFileId(newFiles.length > 0 ? newFiles[0].id : '');
                     }
                   }} 
                 />
@@ -1967,14 +2225,42 @@ Integrations:
                 <h2 className="text-3xl font-bold text-white tracking-tight">Welcome to Aura IDE</h2>
                 <p className="text-[#858585] max-w-md">The next generation AI-powered development environment. Start by creating a new file or opening a folder.</p>
               </div>
-              <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-                <button onClick={createNewFile} className="flex flex-col items-center gap-3 p-6 bg-[#252526] hover:bg-[#2d2d2d] rounded-2xl border border-white/5 transition-all group">
-                  <Plus size={24} className="text-blue-500 group-hover:scale-110 transition-transform" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-2xl px-4">
+                <button onClick={createNewFile} className="flex flex-col items-center gap-3 p-6 bg-[#252526]/50 backdrop-blur-md hover:bg-[#2d2d2d] rounded-2xl border border-white/5 transition-all group hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/10 active:scale-95">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                    <Plus size={24} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                  </div>
                   <span className="text-sm font-medium">New File</span>
                 </button>
-                <button onClick={openFolder} className="flex flex-col items-center gap-3 p-6 bg-[#252526] hover:bg-[#2d2d2d] rounded-2xl border border-white/5 transition-all group">
-                  <FolderOpen size={24} className="text-purple-500 group-hover:scale-110 transition-transform" />
+                <button onClick={openFolder} className="flex flex-col items-center gap-3 p-6 bg-[#252526]/50 backdrop-blur-md hover:bg-[#2d2d2d] rounded-2xl border border-white/5 transition-all group hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/10 active:scale-95">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+                    <FolderOpen size={24} className="text-purple-500 group-hover:scale-110 transition-transform" />
+                  </div>
                   <span className="text-sm font-medium">Open Folder</span>
+                </button>
+                <button onClick={() => setSidebarTab('github')} className="flex flex-col items-center gap-3 p-6 bg-[#252526]/50 backdrop-blur-md hover:bg-[#2d2d2d] rounded-2xl border border-white/5 transition-all group hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/10 active:scale-95">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors">
+                    <Github size={24} className="text-indigo-500 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <span className="text-sm font-medium">Clone Repo</span>
+                </button>
+                <button onClick={() => {
+                  const url = prompt('Enter GitHub Repository URL (e.g. user/repo):');
+                  if (url) {
+                    const parts = url.split('/');
+                    const name = parts[parts.length - 1];
+                    const owner = parts[parts.length - 2];
+                    if (owner && name) {
+                      handleCloneRepo({ name, owner: { login: owner }, full_name: url });
+                    } else {
+                      alert('Invalid repository URL format. Please use "owner/repo"');
+                    }
+                  }
+                }} className="flex flex-col items-center gap-3 p-6 bg-[#252526]/50 backdrop-blur-md hover:bg-[#2d2d2d] rounded-2xl border border-white/5 transition-all group hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/10 active:scale-95">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                    <Globe size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <span className="text-sm font-medium">Clone from URL</span>
                 </button>
               </div>
               <div className="flex gap-6 text-[11px] text-[#858585] font-mono uppercase tracking-widest">
@@ -1984,49 +2270,59 @@ Integrations:
             </div>
           )}
           
-          {/* Editor Container */}
-          <div className={cn(
-            "flex flex-col min-w-0 transition-all duration-300",
-            showBrowser ? "w-1/2" : "w-full"
-          )}>
-            {/* Breadcrumbs */}
-            <div className="h-7 bg-[#1e1e1e] flex items-center px-4 gap-2 text-[11px] text-[#858585] border-b border-white/5">
-              <Folder size={12} />
-              <span>aura-project</span>
-              <ChevronRight size={10} />
-              {getFileIcon(activeFile.name)}
-              <span className="text-[#cccccc] font-medium">{activeFile.name}</span>
+          {activeFile && (
+            <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+              {/* Breadcrumbs */}
+              <div className="h-7 bg-[#1e1e1e] flex items-center px-4 gap-2 text-[11px] text-[#858585] border-b border-white/5">
+                <Folder size={12} />
+                <span>aura-project</span>
+                <ChevronRight size={10} />
+                {getFileIcon(activeFile.name)}
+                <span className="text-[#cccccc] font-medium">{activeFile.name}</span>
+              </div>
+              <div className="flex-1 relative">
+                <Editor
+                  height="100%"
+                  theme="vs-dark"
+                  language={activeFile.language}
+                  value={activeFile.content}
+                  onChange={handleEditorChange}
+                  options={{
+                    fontSize: editorFontSize,
+                    minimap: { enabled: true },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    padding: { top: 20 },
+                    fontFamily: 'JetBrains Mono, monospace',
+                    cursorBlinking: 'smooth',
+                    cursorSmoothCaretAnimation: 'on',
+                    smoothScrolling: true,
+                    lineNumbersMinChars: 3,
+                    glyphMargin: true,
+                    folding: true,
+                    bracketPairColorization: { enabled: true },
+                    guides: { bracketPairs: true, indentation: true },
+                  }}
+                />
+              </div>
             </div>
-            <div className="flex-1 relative">
-              <Editor
-                height="100%"
-                theme="vs-dark"
-                language={activeFile.language}
-                value={activeFile.content}
-                onChange={handleEditorChange}
-                options={{
-                  fontSize: editorFontSize,
-                  minimap: { enabled: true },
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  padding: { top: 20 },
-                  fontFamily: 'JetBrains Mono, monospace',
-                  cursorBlinking: 'smooth',
-                  cursorSmoothCaretAnimation: 'on',
-                  smoothScrolling: true,
-                  lineNumbersMinChars: 3,
-                  glyphMargin: true,
-                  folding: true,
-                  bracketPairColorization: { enabled: true },
-                  guides: { bracketPairs: true, indentation: true },
-                }}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Internal Browser Container */}
           {showBrowser && (
-            <div className="w-1/2 flex flex-col bg-[#f3f3f3] border-l border-white/10">
+            <div 
+              style={{ width: browserWidth }}
+              className="flex flex-col bg-[#f3f3f3] border-l border-white/10 relative"
+            >
+              {/* Resizer Handle (Vertical Split) */}
+              <div 
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setIsResizingBrowser(true);
+                  document.body.style.cursor = 'col-resize';
+                }}
+                className="absolute top-0 bottom-0 left-[-3px] w-1.5 cursor-col-resize hover:bg-blue-500/30 transition-colors z-50"
+              />
               {/* Browser Header/Address Bar */}
               <div className="h-10 bg-[#e1e1e1] border-b border-[#ccc] flex items-center px-2 gap-2">
                 <div className="flex items-center gap-1">
@@ -2096,7 +2392,19 @@ Integrations:
 
         {/* Bottom Panel (Terminal & Problems) */}
         {!zenMode && (
-          <div className="h-[250px] bg-[#1e1e1e] border-t border-white/10 flex flex-col relative">
+          <div 
+            style={{ height: bottomPanelHeight }}
+            className="bg-[#1e1e1e] border-t border-white/10 flex flex-col relative"
+          >
+            {/* Resizer Handle (Horizontal) */}
+            <div 
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setIsResizingBottom(true);
+                document.body.style.cursor = 'row-resize';
+              }}
+              className="absolute top-[-3px] left-0 right-0 h-1.5 cursor-row-resize hover:bg-blue-500/30 transition-colors z-50"
+            />
             <div className="flex items-center gap-4 px-4 py-1 text-[11px] uppercase font-bold text-[#858585] border-b border-white/5">
               <span 
                 onClick={() => setBottomTab('terminal')}
@@ -2180,7 +2488,7 @@ Integrations:
             </div>
             <div className="hover:bg-white/10 px-3 h-full flex items-center cursor-pointer transition-colors border-l border-white/10">Spaces: 2</div>
             <div className="hover:bg-white/10 px-3 h-full flex items-center cursor-pointer transition-colors border-l border-white/10 uppercase tracking-tighter opacity-80">UTF-8</div>
-            <div className="hover:bg-white/10 px-3 h-full flex items-center cursor-pointer transition-colors border-l border-white/10 font-bold uppercase tracking-widest text-[10px]">{activeFile.language}</div>
+            <div className="hover:bg-white/10 px-3 h-full flex items-center cursor-pointer transition-colors border-l border-white/10 font-bold uppercase tracking-widest text-[10px]">{activeFile?.language || 'No File'}</div>
             <div className="flex items-center gap-2 hover:bg-white/10 px-3 h-full cursor-pointer transition-colors border-l border-white/10 bg-white/5" title={`Active Model: ${aiProvider === 'gemini' ? selectedModel : openRouterModel}`}>
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
               <span className="font-black tracking-tighter">AURA AI ONLINE</span>
