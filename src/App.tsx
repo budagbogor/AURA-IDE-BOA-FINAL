@@ -489,7 +489,7 @@ const GuideModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 // --- Desktop Title Bar (Premium Trae/VS Code Style) ---
-const TitleBar = () => {
+const TitleBar = ({ projectName }: { projectName: string }) => {
   const [tauriWindow, setTauriWindow] = useState<any>(null);
 
   useEffect(() => {
@@ -510,7 +510,11 @@ const TitleBar = () => {
         <span className="text-[11px] font-bold text-gray-400 tracking-widest uppercase">Aura AI IDE</span>
       </div>
       
-      <div className="flex-1 flex justify-center h-full items-center pointer-events-none">
+      <div className="flex-1 flex justify-center h-full items-center pointer-events-none gap-4">
+        <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md">
+          <Folder size={12} className="text-blue-400" />
+          <span className="text-[11px] font-bold text-blue-300 uppercase tracking-tight">{projectName}</span>
+        </div>
         <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[11px] text-gray-400 flex items-center gap-2">
           <Search size={12} />
           <span>Search or type a command... (Ctrl+P)</span>
@@ -1500,7 +1504,7 @@ Integrations:
 
   return (
     <div className="flex flex-col h-screen text-gray-300 font-sans selection:bg-blue-500/30 bg-[#0c0c0c] overflow-hidden">
-      <TitleBar />
+      <TitleBar projectName={projectName} />
       <div 
         className={cn(
           "flex-1 flex overflow-hidden transition-all duration-300",
@@ -1705,9 +1709,6 @@ Integrations:
           "w-14 bg-[#333333] flex flex-col items-center py-4 gap-4 z-50 glass-dark",
           layoutMode === 'modern' ? "border-l border-white/5" : "border-r border-white/5"
         )}>
-          <div className="mb-2" title="Aura IDE">
-            <AuraLogo size={32} className="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-          </div>
           <div 
             onClick={() => setSidebarTab('files')}
             title="Explorer (Ctrl+Shift+E)"
