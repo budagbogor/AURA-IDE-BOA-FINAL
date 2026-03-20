@@ -65,17 +65,25 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build Tauri App
-        run: npm run tauri build
-
-      - name: Upload EXE Artifact
-        uses: actions/upload-artifact@v4
+      - name: Build and Release Tauri App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          name: aura-ide-windows-exe
-          path: src-tauri/target/release/bundle/msi/*.msi # Tauri usually bundles to MSI or EXE
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Aura IDE Release ${{ github.ref_name }}'
+          releaseBody: |
+            ## Aura AI IDE Official Release ${{ github.ref_name }}
+            - Automatically generated professional build.
+            - Includes both Desktop (Windows) and Mobile (Android) versions.
+            - Includes OTA Update mechanisms (`latest.json`).
+          releaseDraft: false
+          prerelease: false
 
-  create-release:
-    name: Create GitHub Release
+  append-release:
+    name: Append Android to Release
     needs: [build-android, build-windows]
     runs-on: ubuntu-latest
     permissions:
@@ -87,36 +95,14 @@ jobs:
           name: aura-ide-android-apk
           path: artifacts
 
-      - name: Download Windows Assets
-        uses: actions/download-artifact@v4
-        with:
-          name: aura-ide-windows-exe
-          path: artifacts
-
       - name: Rename Files for Release
         run: |
           mv artifacts/app-debug.apk artifacts/AuraIDE-Android.apk
-          # Finds the msi/exe and renames it
-          find artifacts -name "*.msi" -exec mv {} artifacts/AuraIDE-Windows-Installer.msi \; || true
 
-      - name: Create Release
+      - name: Append to Existing Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/AuraIDE-Android.apk
-            artifacts/AuraIDE-Windows-Installer.msi
-          name: Release ${{ github.ref_name }}
-          body: |
-            ## Aura AI IDE Official Release ${{ github.ref_name }}
-            
-            ### Downloads
-            - [AuraIDE-Android.apk](artifacts/AuraIDE-Android.apk)
-            - [AuraIDE-Windows-Installer.msi](artifacts/AuraIDE-Windows-Installer.msi)
-            
-            ### Changes in this version
-            - Automatically generated professional build.
-            - Includes both Desktop (Windows) and Mobile (Android) versions.
-          draft: false
-          prerelease: false
+          files: artifacts/AuraIDE-Android.apk
+          tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

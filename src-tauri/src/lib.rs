@@ -10,6 +10,7 @@ pub fn run() {
         )?;
       }
       app.handle().plugin(tauri_plugin_shell::init())?;
+      app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
       Ok(())
     })
     .run(tauri::generate_context!())
