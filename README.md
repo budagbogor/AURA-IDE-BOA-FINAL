@@ -12,6 +12,8 @@
 **Aura AI IDE** adalah lingkungan pengembangan terpadu (IDE) modern yang dirancang untuk pengembang masa depan. Menggabungkan estetika premium bergaya *AntiGravity* dengan integrasi AI yang mendalam, Aura memungkinkan Anda untuk membangun aplikasi web, desktop, dan mobile dalam satu alur kerja yang sangat mulus.
 
 IDE ini bukan sekadar editor kode; ini adalah **ekosistem pengembangan lengkap** yang mendukung manajemen file lokal, sinkronisasi GitHub real-time, dan sistem rilis otomatis (CI/CD) mandiri.
+- 🚀 **Real Terminal Bridge**: Eksekusi perintah asli (`npm`, `git`, `python`, dll) langsung dari IDE (Eksklusif Windows Installer).
+- 🛠️ **Multi-Model AI Selection**: Pilih model AI favorit Anda (Gemini 2.0, Claude 4.5, dll) via SumoPod.
 
 ---
 

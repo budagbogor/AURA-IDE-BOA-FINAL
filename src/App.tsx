@@ -62,6 +62,8 @@ import { saveAs } from 'file-saver';
 import { SUMOPOD_MODELS, generateSumopodContent } from './services/sumopodService';
 import { SUPER_CLAUDE_SKILLS, SUPER_CLAUDE_COMMANDS, type SuperClaudeSkill } from './constants/superClaude';
 
+
+
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -244,6 +246,15 @@ const GuideModal = ({ onClose }: { onClose: () => void }) => {
                 </div>
               ))}
             </div>
+            <div className="bg-blue-500/10 p-4 rounded-xl border border-blue-500/20 mt-4">
+              <h4 className="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                <Terminal size={14} className="text-blue-400" /> Real Terminal (Windows Installer)
+              </h4>
+              <p className="text-[11px] text-gray-300 leading-relaxed">
+                Khusus versi <strong>Windows Installer (.exe)</strong>, terminal Aura kini mendukung perintah asli sistem seperti <code>npm install</code>, <code>git push</code>, dan lainnya.
+                Cukup ketik perintah Anda dan tekan Enter untuk eksekusi langsung di host OS.
+              </p>
+            </div>
           </div>
         );
       case 'github':
@@ -402,6 +413,14 @@ const GuideModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 export default function App() {
+  const [TauriCommand, setTauriCommand] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+      import('@tauri-apps/plugin-shell').then(m => { setTauriCommand(() => m.Command); });
+    }
+  }, []);
+
   const [files, setFiles] = useState<FileItem[]>([]);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showFileSearch, setShowFileSearch] = useState(false);
@@ -934,12 +953,40 @@ Integrations:
 
   const [terminalInput, setTerminalInput] = useState('');
 
-  const handleTerminalCommand = (e: React.KeyboardEvent) => {
+  const handleTerminalCommand = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       const val = terminalInput.trim();
       if (!val) return;
       
       setTerminalOutput(prev => [...prev, `aura-project $ ${val}`]);
+      setTerminalInput('');
+
+      // If running in Tauri, try real execution
+      if (TauriCommand) {
+        try {
+          // Detect command and args
+          const parts = val.split(' ');
+          const program = parts[0];
+          const args = parts.slice(1);
+
+          // We use 'cmd /c' on Windows for better compatibility with npm/git in path
+          const fullCmd = TauriCommand.create('cmd', ['/c', val]);
+          
+          fullCmd.onStdout.addListener((data: string) => {
+            setTerminalOutput(prev => [...prev, data]);
+          });
+
+          fullCmd.onStderr.addListener((data: string) => {
+            setTerminalOutput(prev => [...prev, `[ERROR] ${data}`]);
+          });
+
+          const child = await fullCmd.spawn();
+          return;
+        } catch (err) {
+          console.error('Tauri Shell Error:', err);
+          setTerminalOutput(prev => [...prev, `[SYSTEM ERROR] Gagal menjalankan perintah: ${err instanceof Error ? err.message : 'Unknown error'}`]);
+        }
+      }
       
       const cmd = val.toLowerCase();
       if (cmd === 'clear') {
@@ -990,8 +1037,6 @@ Integrations:
       } else {
         setTerminalOutput(prev => [...prev, `Command not found: ${val}`]);
       }
-      
-      setTerminalInput('');
     }
   };
 

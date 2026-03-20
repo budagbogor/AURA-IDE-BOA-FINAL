@@ -6,6 +6,17 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "shell:allow-execute",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "cmd": "npm", "args": true },
+        { "cmd": "git", "args": true },
+        { "cmd": "node", "args": true },
+        { "cmd": "cmd", "args": true },
+        { "cmd": "powershell", "args": true }
+      ]
+    }
   ]
 }
