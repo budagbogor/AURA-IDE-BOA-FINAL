@@ -1298,26 +1298,25 @@ Integrations:
       setTerminalOutput(prev => [...prev, `aura-project $ ${val}`]);
       setTerminalInput('');
 
-      // If running in Tauri, try real execution
-      if (TauriCommand) {
+      // If running in Tauri Desktop mode, try real execution
+      if (isTauri && TauriCommand) {
         try {
-          // Detect command and args
-          const parts = val.split(' ');
-          const program = parts[0];
-          const args = parts.slice(1);
-
           // We use 'powershell' on Windows for better compatibility and full command access natively
           const fullCmd = TauriCommand.create('powershell', ['-Command', val], {
             cwd: nativeProjectPath || undefined
           });
           
-          fullCmd.onStdout.addListener((data: string) => {
-            setTerminalOutput(prev => [...prev, data]);
-          });
+          if (fullCmd.onStdout && typeof fullCmd.onStdout.addListener === 'function') {
+            fullCmd.onStdout.addListener((data: string) => {
+              setTerminalOutput(prev => [...prev, data]);
+            });
+          }
 
-          fullCmd.onStderr.addListener((data: string) => {
-            setTerminalOutput(prev => [...prev, `[ERROR] ${data}`]);
-          });
+          if (fullCmd.onStderr && typeof fullCmd.onStderr.addListener === 'function') {
+            fullCmd.onStderr.addListener((data: string) => {
+              setTerminalOutput(prev => [...prev, `[ERROR] ${data}`]);
+            });
+          }
 
           const child = await fullCmd.spawn();
           return;
