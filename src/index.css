@@ -13,6 +13,12 @@
   body {
     @apply bg-[#1e1e1e] text-[#cccccc] font-sans antialiased;
   }
+  button, a, [role="button"], summary {
+    cursor: pointer;
+  }
+  button:disabled, a[disabled], [role="button"][disabled] {
+    cursor: not-allowed;
+  }
 }
 
 @layer utilities {

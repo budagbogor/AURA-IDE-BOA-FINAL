@@ -15,11 +15,39 @@ export const getSupabaseClient = (config?: SupabaseConfig) => {
 };
 
 export const testSupabaseConnection = async (config: SupabaseConfig) => {
-  const client = createClient(config.url, config.anonKey);
-  const { data, error } = await client.from('_health').select('*').limit(1); // Generic health check attempt
-  if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
-    // PGRST116 is "no rows", 42P01 is "table does not exist" - both mean we connected but table is missing
-    throw error;
+  let url = config.url.trim();
+  // Auto fix if user just pasted the project ref with https:// but forgot .supabase.co
+  if (url.startsWith('https://') && url.split('.').length === 1) {
+    url = `${url}.supabase.co`;
   }
-  return true;
+
+  try {
+    const response = await fetch(`${url}/rest/v1/`, {
+      method: 'GET',
+      headers: {
+        'apikey': config.anonKey,
+        'Authorization': `Bearer ${config.anonKey}`
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Invalid Anon Key (401 Unauthorized)');
+      } else if (response.status === 404) {
+        throw new Error('Project not found or invalid URL (404)');
+      } else {
+        throw new Error(`Connection failed with HTTP Status: ${response.status}`);
+      }
+    }
+    
+    // Validate that the request actually returned OpenAPI spec typical of Supabase REST
+    const data = await response.json();
+    if (!data || !data.openapi) {
+      throw new Error('Invalid response from Supabase REST API.');
+    }
+
+    return true;
+  } catch (err: any) {
+    throw new Error(err.message || 'Network error or invalid URL format');
+  }
 };
