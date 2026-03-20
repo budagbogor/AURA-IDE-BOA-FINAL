@@ -64,7 +64,8 @@ import { fetchUserRepos, cloneRepository, pushProjectToGitHub } from './services
 import { generateGeminiStream } from './services/geminiService';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { SUPER_CLAUDE_SKILLS } from './constants/superClaude';
+import { SUPER_CLAUDE_SKILLS, SUPER_CLAUDE_COMMANDS } from './constants/superClaude';
+import { SUMOPOD_MODELS, generateSumopodContent } from './services/sumopodService';
 
 // Windows Installer / Desktop Mode Helpers
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
@@ -646,6 +647,31 @@ export default function App() {
       setTerminalOutput(prev => [...prev, `[GITHUB] Error cloning repository: ${error instanceof Error ? error.message : 'Unknown error'}`]);
     } finally {
       setIsFetchingRepos(false);
+    }
+  };
+
+  const handleSaveFile = async () => {
+    if (!activeFile) return;
+    
+    if (isTauri) {
+      try {
+        const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+        if (activeFile.path) {
+          await writeTextFile(activeFile.path, activeFile.content);
+          setTerminalOutput(prev => [...prev, `[SYSTEM] File saved to disk: ${activeFile.path}`]);
+        } else {
+          // Fallback if no path
+          const blob = new Blob([activeFile.content], { type: 'text/plain' });
+          saveAs(blob, activeFile.name);
+        }
+      } catch (err) {
+        console.error("Desktop Save Error:", err);
+      }
+    } else {
+      // Web Mode: Download via file-saver
+      const blob = new Blob([activeFile.content], { type: 'text/plain' });
+      saveAs(blob, activeFile.name);
+      setTerminalOutput(prev => [...prev, `[AURA] File downloaded: ${activeFile.name}`]);
     }
   };
 
