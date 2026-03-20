@@ -61,14 +61,75 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { SUMOPOD_MODELS, generateSumopodContent } from './services/sumopodService';
 import { SUPER_CLAUDE_SKILLS, SUPER_CLAUDE_COMMANDS, type SuperClaudeSkill } from './constants/superClaude';
+interface McpTemplateArg {
+  key: string;
+  label: string;
+  placeholder: string;
+  type: 'env' | 'arg';
+}
 
-const MCP_TEMPLATES = [
-  { label: 'PostgreSQL Database', name: 'Postgres', type: 'stdio', url: 'npx -y @modelcontextprotocol/server-postgres postgres://username:password@localhost:5432/mydb', defaultEnv: '' },
-  { label: 'SQLite Database', name: 'SQLite', type: 'stdio', url: 'npx -y @modelcontextprotocol/server-sqlite --db-path database.db', defaultEnv: '' },
-  { label: 'GitHub API', name: 'GitHub', type: 'stdio', url: 'npx -y @modelcontextprotocol/server-github', defaultEnv: 'GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here' },
-  { label: 'Google Drive', name: 'Google Drive', type: 'stdio', url: 'npx -y @modelcontextprotocol/server-gdrive', defaultEnv: '' },
-  { label: 'Brave Search', name: 'Brave Search', type: 'stdio', url: 'npx -y @modelcontextprotocol/server-brave-search', defaultEnv: 'BRAVE_API_KEY=your_api_key_here' },
-  { label: 'Supabase Database', name: 'Supabase MCP', type: 'stdio', url: 'npx -y @rectop/mcp-postgres postgres://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres', defaultEnv: '' }
+interface McpTemplate {
+  name: string;
+  label: string;
+  type: 'sse' | 'stdio';
+  commandTemplate: string;
+  requirements: McpTemplateArg[];
+}
+
+const MCP_TEMPLATES: McpTemplate[] = [
+  {
+    name: 'PostgreSQL MCP',
+    label: 'PostgreSQL Database',
+    type: 'stdio',
+    commandTemplate: 'npx -y @modelcontextprotocol/server-postgres {{DB_URL}}',
+    requirements: [
+      { key: 'DB_URL', label: 'Connection String', placeholder: 'postgres://user:pass@localhost:5432/mydb', type: 'arg' }
+    ]
+  },
+  {
+    name: 'SQLite MCP',
+    label: 'SQLite Database',
+    type: 'stdio',
+    commandTemplate: 'npx -y @modelcontextprotocol/server-sqlite --db-path {{DB_PATH}}',
+    requirements: [
+      { key: 'DB_PATH', label: 'Database File Path', placeholder: 'C:/path/to/database.db', type: 'arg' }
+    ]
+  },
+  {
+    name: 'GitHub MCP',
+    label: 'GitHub API',
+    type: 'stdio',
+    commandTemplate: 'npx -y @modelcontextprotocol/server-github',
+    requirements: [
+      { key: 'GITHUB_PERSONAL_ACCESS_TOKEN', label: 'GitHub Personal Access Token', placeholder: 'ghp_...', type: 'env' }
+    ]
+  },
+  {
+    name: 'Google Drive MCP',
+    label: 'Google Drive',
+    type: 'stdio',
+    commandTemplate: 'npx -y @modelcontextprotocol/server-gdrive',
+    requirements: []
+  },
+  {
+    name: 'Brave Search MCP',
+    label: 'Brave Search',
+    type: 'stdio',
+    commandTemplate: 'npx -y @modelcontextprotocol/server-brave-search',
+    requirements: [
+      { key: 'BRAVE_API_KEY', label: 'Brave Search API Key', placeholder: 'Your Brave API Key', type: 'env' }
+    ]
+  },
+  {
+    name: 'Supabase MCP',
+    label: 'Supabase Database',
+    type: 'stdio',
+    commandTemplate: 'npx -y @rectop/mcp-postgres postgres://postgres.{{PROJECT_REF}}:{{PASSWORD}}@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres',
+    requirements: [
+      { key: 'PROJECT_REF', label: 'Project Reference ID', placeholder: 'e.g. abcdefghijklmno', type: 'arg' },
+      { key: 'PASSWORD', label: 'Database Password', placeholder: 'Your DB Password', type: 'arg' }
+    ]
+  }
 ];
 
 function cn(...inputs: ClassValue[]) {
@@ -522,10 +583,11 @@ export default function App() {
     return [];
   });
   const [newMcpName, setNewMcpName] = useState(MCP_TEMPLATES[0].name);
-  const [newMcpUrl, setNewMcpUrl] = useState(MCP_TEMPLATES[0].url);
+  const [newMcpUrl, setNewMcpUrl] = useState(MCP_TEMPLATES[0].commandTemplate);
   const [newMcpType, setNewMcpType] = useState<'sse' | 'stdio'>(MCP_TEMPLATES[0].type as any);
-  const [newMcpEnvStr, setNewMcpEnvStr] = useState(MCP_TEMPLATES[0].defaultEnv);
+  const [newMcpEnvStr, setNewMcpEnvStr] = useState('');
   const [selectedMcpTemplateIdx, setSelectedMcpTemplateIdx] = useState<number | 'custom'>(0);
+  const [mcpTemplateData, setMcpTemplateData] = useState<Record<string, string>>({});
   const [showMcpLogsFor, setShowMcpLogsFor] = useState<string | null>(null);
   const [activeMcpLogs, setActiveMcpLogs] = useState<string[]>([]);
   const [editorFontSize, setEditorFontSize] = useState(14);
@@ -2315,12 +2377,13 @@ Integrations:
                             onChange={(e) => {
                               const val = e.target.value;
                               setSelectedMcpTemplateIdx(val === 'custom' ? 'custom' : parseInt(val));
+                              setMcpTemplateData({});
                               if (val !== 'custom') {
                                 const tpl = MCP_TEMPLATES[parseInt(val)];
                                 setNewMcpName(tpl.name);
                                 setNewMcpType(tpl.type as 'sse'|'stdio');
-                                setNewMcpUrl(tpl.url);
-                                setNewMcpEnvStr(tpl.defaultEnv || '');
+                                setNewMcpUrl(tpl.commandTemplate);
+                                setNewMcpEnvStr('');
                               } else {
                                 setNewMcpName('');
                                 setNewMcpUrl('');
@@ -2337,14 +2400,21 @@ Integrations:
                             <option value="custom" className="bg-[#2d2d2d] text-white font-medium">Custom Server (Advanced)</option>
                           </select>
 
-                          {(selectedMcpTemplateIdx === 'custom' || newMcpUrl.includes('[') || newMcpUrl.includes('username:password') || newMcpUrl === '') && (
-                            <input 
-                              type="text" 
-                              placeholder={newMcpType === 'sse' ? "Server URL (SSE or WebSocket)" : "Connection Command / URL (Edit as needed)"}
-                              value={newMcpUrl}
-                              onChange={e => setNewMcpUrl(e.target.value)}
-                              className="w-full bg-[#3c3c3c] border border-white/5 rounded-lg py-1.5 px-3 text-[12px] focus:outline-none focus:border-blue-500/50 transition-all"
-                            />
+                          {selectedMcpTemplateIdx !== 'custom' && typeof selectedMcpTemplateIdx === 'number' && MCP_TEMPLATES[selectedMcpTemplateIdx]?.requirements.length > 0 && (
+                            <div className="space-y-2 mt-2 pt-2 border-t border-white/5">
+                              {MCP_TEMPLATES[selectedMcpTemplateIdx].requirements.map(req => (
+                                <div key={req.key} className="space-y-1">
+                                  <label className="text-[10px] text-[#858585] ml-1 uppercase">{req.label}</label>
+                                  <input 
+                                    type={req.key.includes('PASSWORD') || req.key.includes('TOKEN') || req.key.includes('KEY') ? 'password' : 'text'}
+                                    placeholder={req.placeholder}
+                                    value={mcpTemplateData[req.key] || ''}
+                                    onChange={e => setMcpTemplateData(prev => ({ ...prev, [req.key]: e.target.value }))}
+                                    className="w-full bg-[#2a2a2a] border border-white/5 rounded-lg py-1.5 px-3 text-[12px] focus:outline-none focus:border-blue-500/50 transition-all text-white"
+                                  />
+                                </div>
+                              ))}
+                            </div>
                           )}
 
                           {selectedMcpTemplateIdx === 'custom' && (
@@ -2364,26 +2434,62 @@ Integrations:
                                 <option value="sse">SSE (Remote URL)</option>
                                 <option value="stdio">Command (Local CLI)</option>
                               </select>
+                              <input 
+                                type="text" 
+                                placeholder={newMcpType === 'sse' ? "Server URL (SSE or WebSocket)" : "Connection Command / URL (Edit as needed)"}
+                                value={newMcpUrl}
+                                onChange={e => setNewMcpUrl(e.target.value)}
+                                className="w-full bg-[#3c3c3c] border border-white/5 rounded-lg py-1.5 px-3 text-[12px] focus:outline-none focus:border-blue-500/50 transition-all"
+                              />
+                              {newMcpType === 'stdio' && (
+                                <textarea
+                                  placeholder="Environment Variables (Optional, e.g. GITHUB_TOKEN=abc...)"
+                                  value={newMcpEnvStr}
+                                  onChange={e => setNewMcpEnvStr(e.target.value)}
+                                  rows={2}
+                                  className="w-full bg-[#3c3c3c] border border-white/5 rounded-lg py-1.5 px-3 text-[12px] focus:outline-none focus:border-blue-500/50 transition-all font-mono"
+                                />
+                              )}
                             </>
-                          )}
-
-                          {(newMcpType === 'stdio' && (selectedMcpTemplateIdx === 'custom' || (typeof selectedMcpTemplateIdx === 'number' && MCP_TEMPLATES[selectedMcpTemplateIdx]?.defaultEnv !== undefined))) && (
-                            <textarea
-                              placeholder="Environment Variables (Optional, e.g. GITHUB_TOKEN=abc...)"
-                              value={newMcpEnvStr}
-                              onChange={e => setNewMcpEnvStr(e.target.value)}
-                              rows={2}
-                              className="w-full bg-[#3c3c3c] border border-white/5 rounded-lg py-1.5 px-3 text-[12px] focus:outline-none focus:border-blue-500/50 transition-all font-mono"
-                            />
                           )}
                         </div>
                         <button 
                           onClick={() => {
-                            if (!newMcpName || !newMcpUrl) return;
+                            let finalName = newMcpName;
+                            let finalUrl = newMcpUrl;
+                            let finalEnvStr = newMcpEnvStr;
+                            let finalType = newMcpType;
+
+                            if (selectedMcpTemplateIdx !== 'custom') {
+                              const tpl = MCP_TEMPLATES[selectedMcpTemplateIdx as number];
+                              finalName = tpl.name;
+                              finalType = tpl.type;
+                              finalUrl = tpl.commandTemplate;
+                              const envList: string[] = [];
+                              
+                              for (const req of tpl.requirements) {
+                                const val = mcpTemplateData[req.key] || '';
+                                if (!val) {
+                                  setTerminalOutput(logs => [...logs, `[MCP] Please provide a value for ${req.label} before adding.`]);
+                                  return;
+                                }
+                                if (req.type === 'arg') {
+                                  finalUrl = finalUrl.replace(`{{${req.key}}}`, val);
+                                } else if (req.type === 'env') {
+                                  envList.push(`${req.key}=${val}`);
+                                }
+                              }
+                              
+                              if (envList.length > 0) {
+                                finalEnvStr = envList.join('\n');
+                              }
+                            }
+
+                            if (!finalName || !finalUrl) return;
                             
                             const parsedEnv: Record<string, string> = {};
-                            if (newMcpType === 'stdio' && newMcpEnvStr) {
-                              newMcpEnvStr.split('\n').forEach(line => {
+                            if (finalType === 'stdio' && finalEnvStr) {
+                              finalEnvStr.split('\n').forEach(line => {
                                 const idx = line.indexOf('=');
                                 if (idx > 0) {
                                   const k = line.substring(0, idx).trim();
@@ -2394,17 +2500,23 @@ Integrations:
                             }
 
                             setMcpServers(prev => {
-                              if (prev.some(s => s.name === newMcpName)) {
-                                setTerminalOutput(logs => [...logs, `[MCP] A server named '${newMcpName}' already exists. Please use a different name.`]);
+                              if (prev.some(s => s.name === finalName)) {
+                                setTerminalOutput(logs => [...logs, `[MCP] A server named '${finalName}' already exists. Please use a different name or remove the existing one first.`]);
                                 return prev;
                               }
-                              const updated = [...prev, { name: newMcpName, url: newMcpUrl, type: newMcpType, connected: false, tools: [], env: parsedEnv }];
+                              const updated = [...prev, { name: finalName, url: finalUrl, type: finalType, connected: false, tools: [], env: parsedEnv }];
                               localStorage.setItem('aura_mcp_servers', JSON.stringify(updated.map(s => ({...s, connected: false, tools: []}))));
                               return updated;
                             });
-                            setNewMcpName('');
-                            setNewMcpUrl('');
-                            setNewMcpEnvStr('');
+                            
+                            if (selectedMcpTemplateIdx === 'custom') {
+                              setNewMcpName('');
+                              setNewMcpUrl('');
+                              setNewMcpEnvStr('');
+                            } else {
+                              // Reset the template data form
+                              setMcpTemplateData({});
+                            }
                           }}
                           className="w-full py-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-bold hover:bg-blue-700 transition-all cursor-pointer"
                         >
