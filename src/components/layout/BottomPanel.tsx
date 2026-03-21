@@ -22,6 +22,7 @@ interface BottomPanelProps {
   activeFile: FileItem | null;
   isScanning: boolean;
   scanForProblems: () => void;
+  nativeProjectPath: string | null;
 }
 
 export const BottomPanel: React.FC<BottomPanelProps> = ({
@@ -42,9 +43,11 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
   problems,
   activeFile,
   isScanning,
-  scanForProblems
+  scanForProblems,
+  nativeProjectPath
 }) => {
   const currentSession = terminalSessions.find(s => s.id === activeTerminalId) || terminalSessions[0];
+  const displayPath = nativeProjectPath ? (nativeProjectPath.split(/[\\/]/).pop() || nativeProjectPath) : 'aura-project';
 
   if (zenMode) return null;
 
@@ -57,33 +60,33 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
             <div className="flex items-center gap-1 border-b border-white/5 bg-black/40 px-2 py-1">
               {terminalSessions.map(s => (
                 <div 
-                  key={s.id}
-                  onClick={() => setActiveTerminalId(s.id)}
-                  className={cn(
-                    "group flex items-center gap-2 px-3 py-1 rounded-md cursor-pointer transition-all text-[11px] font-medium border border-transparent",
-                    activeTerminalId === s.id 
-                      ? "bg-blue-600/20 text-blue-400 border-blue-500/30" 
-                      : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
-                  )}
+                   key={s.id}
+                   onClick={() => setActiveTerminalId(s.id)}
+                   className={cn(
+                     "group flex items-center gap-2 px-3 py-1 rounded-md cursor-pointer transition-all text-[11px] font-medium border border-transparent",
+                     activeTerminalId === s.id 
+                       ? "bg-blue-600/20 text-blue-400 border-blue-500/30" 
+                       : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                   )}
                 >
                   <Terminal size={12} className={activeTerminalId === s.id ? "text-blue-400" : "text-gray-600"} />
                   <span>{s.name}</span>
                   {terminalSessions.length > 1 && (
                     <X 
-                      size={10} 
-                      className="opacity-0 group-hover:opacity-100 hover:text-white transition-opacity ml-1" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        closeTerminalSession(s.id);
-                      }}
+                       size={10} 
+                       className="opacity-0 group-hover:opacity-100 hover:text-white transition-opacity ml-1" 
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         closeTerminalSession(s.id);
+                       }}
                     />
                   )}
                 </div>
               ))}
               <button 
-                onClick={addTerminalSession}
-                className="p-1.5 hover:bg-white/5 rounded-md text-gray-500 hover:text-white transition-all ml-1"
-                title="New Terminal"
+                 onClick={addTerminalSession}
+                 className="p-1.5 hover:bg-white/5 rounded-md text-gray-500 hover:text-white transition-all ml-1"
+                 title="New Terminal"
               >
                 <Plus size={14} />
               </button>
@@ -94,39 +97,42 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
               <div className="text-emerald-400 font-bold text-[11px] opacity-70 mb-2">Aura Terminal v4.0.0 (Cursor Core)</div>
               {currentSession?.output?.map((line: string, i: number) => (
                 <div key={i} className="flex gap-2">
-                  {line.startsWith('aura-project $') ? (
-                    <div className="flex gap-2">
+                  {line.includes(' $ ') ? (
+                    <div className="flex items-center gap-1">
                       <span className="text-emerald-500">➜</span>
-                      <span className="text-blue-400 font-bold">aura-project</span>
+                      <span className="text-blue-400 font-bold">{line.split(' $ ')[0].replace('aura-project', displayPath)}</span>
                       <span className="text-gray-500">$</span>
-                      <span className="text-white">{line.replace('aura-project $', '').trim()}</span>
+                      <span className="text-white ml-1">{line.split(' $ ')[1]}</span>
                     </div>
                   ) : (
                     <div className={cn(
-                      "whitespace-pre-wrap break-all",
-                      line.startsWith('Command not found') ? "text-red-400" : 
-                      line.startsWith('[ERR]') ? "text-red-500" :
-                      line.startsWith('✓') ? "text-emerald-400" :
-                      line.startsWith('✗') ? "text-red-400" :
-                      "text-[#cccccc]"
+                       "whitespace-pre-wrap break-all",
+                       line.startsWith('Command not found') ? "text-red-400" : 
+                       line.startsWith('[ERR]') ? "text-red-500" :
+                       line.startsWith('✓') ? "text-emerald-400" :
+                       line.startsWith('✗') ? "text-red-400" :
+                       "text-[#cccccc]"
                     )}>{line}</div>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Terminal Input */}
-            <div className="flex items-center gap-2 text-white border-t border-white/5 p-2 bg-black/20">
-              <span className="text-emerald-500">➜</span>
-              <span className="text-blue-400 font-bold">aura-project</span>
-              <span className="text-gray-500">$</span>
+            {/* Terminal Input Area */}
+            <div className="flex items-center text-white border-t border-white/5 px-2 py-1.5 bg-black/20">
+              <div className="flex items-center gap-1 mr-2 shrink-0">
+                <span className="text-emerald-500">➜</span>
+                <span className="text-blue-400 font-bold">{displayPath}</span>
+                <span className="text-gray-500">$</span>
+              </div>
               <input 
-                type="text" 
-                value={terminalInput}
-                onChange={(e) => setTerminalInput(e.target.value)}
-                onKeyDown={handleTerminalCommand}
-                className="flex-1 bg-transparent border-none outline-none text-white font-mono placeholder:text-gray-700"
-                placeholder="type command..."
+                 type="text" 
+                 value={terminalInput}
+                 onChange={(e) => setTerminalInput(e.target.value)}
+                 onKeyDown={handleTerminalCommand}
+                 className="flex-1 bg-transparent border-none outline-none text-white font-mono placeholder:text-gray-700/50"
+                 placeholder="type command..."
+                 autoFocus
               />
             </div>
           </div>

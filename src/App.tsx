@@ -1228,12 +1228,7 @@ Integrations:
     appendOutput(`aura-project $ ${val}`);
 
     // If running in Tauri Desktop mode, try real execution
-    if (isTauri && TauriCommand) {
-      if (!nativeProjectPath) {
-        appendOutput('[AURA INFO] Folder proyek belum dibuka secara Native. Klik tombol "Open Folder Proyek (Native - Support Terminal/NPM)" di toolbar Explorer.');
-        return;
-      }
-
+    if (isTauri && TauriCommand && nativeProjectPath) {
       try {
         const child = await TauriCommand.create(
           'powershell',
@@ -1261,6 +1256,7 @@ Integrations:
         return; 
       } catch (err: any) {
         console.error('Tauri Shell Error:', err);
+        // Fallback to powershell direct execution if spawn fails
         try {
           const output = await TauriCommand.create(
             'powershell',
@@ -1268,57 +1264,52 @@ Integrations:
             { cwd: nativeProjectPath }
           ).execute();
           if (output.stdout) {
-            output.stdout.split('\n').filter((l: string) => l.trim()).forEach((line: string) => {
-              appendOutput(line);
-            });
+            output.stdout.split('\n').filter((l: string) => l.trim()).forEach((line: string) => appendOutput(line));
           }
           if (output.stderr) {
-            output.stderr.split('\n').filter((l: string) => l.trim()).forEach((line: string) => {
-              appendOutput(`[ERR] ${line}`);
-            });
+            output.stderr.split('\n').filter((l: string) => l.trim()).forEach((line: string) => appendOutput(`[ERR] ${line}`));
           }
           return;
         } catch (err2: any) {
           appendOutput(`[SYSTEM ERROR] ${err2?.message || 'Gagal menjalankan perintah native.'}`);
         }
       }
-    }
-    
-    // Fallback Simulator
-    const cmd = val.toLowerCase();
-    if (cmd === 'clear') {
-      setTerminalSessions(prev => prev.map(s => s.id === sessionId ? { ...s, output: [] } : s));
-    } else if (cmd === 'ls') {
-      appendOutput(files.map(f => f.name).join('  '));
-    } else if (cmd === 'help') {
-      appendOutput('Available: clear, ls, help, scan, build, date, aura --version, whoami, neofetch, git status, npm install, npm run dev');
-    } else if (cmd === 'scan') {
-      scanForProblems();
-    } else if (cmd === 'date') {
-      appendOutput(new Date().toLocaleString());
-    } else if (cmd === 'build' || cmd === 'npm run build') {
-      appendOutput('> aura-project@1.0.0 build');
-      appendOutput('> tsc && vite build');
-      appendOutput('✓ built in 1.23s');
-    } else if (cmd === 'aura --version') {
-      appendOutput('Aura IDE v4.0.0 (Cursor Evolution)');
-    } else if (cmd === 'whoami') {
-      appendOutput('aura-developer');
-    } else if (cmd === 'neofetch') {
-      appendOutput('      .---.      OS: Windows 11 / AuraOS 4.0.0');
-      appendOutput('     /     \\     Host: Aura Native Desktop');
-      appendOutput('    | () () |    Kernel: Native Bridge');
-      appendOutput('      |||||      Shell: PowerShell (Dual-Path)');
-    } else if (cmd.startsWith('git') || cmd.startsWith('npm')) {
-      if (isTauri) {
-        appendOutput(`[AURA INFO] Perintah "${cmd.split(' ')[0]}" memerlukan folder proyek yang dibuka secara Native.`);
-        appendOutput(`[ACTION] Klik ikon 'Folder dengan Kilat' (FolderTree) di toolbar Explorer.`);
-        // We could theoretically trigger openFolderNative here if we want to be very proactive
-      } else {
-        appendOutput('[SIMULATOR] Fitur Terminal Native (NPM/Git/Build) hanya tersedia di aplikasi Desktop (.exe).');
-      }
     } else {
-      appendOutput(`Command not found: ${val}`);
+      // Fallback Simulator (only if not in native mode or no folder open)
+      const cmd = val.toLowerCase();
+      if (cmd === 'clear') {
+        setTerminalSessions(prev => prev.map(s => s.id === sessionId ? { ...s, output: [] } : s));
+      } else if (cmd === 'ls') {
+        appendOutput(files.map(f => f.name).join('  '));
+      } else if (cmd === 'help') {
+        appendOutput('Available: clear, ls, help, scan, build, date, aura --version, whoami, neofetch, git status, npm install, npm run dev');
+      } else if (cmd === 'scan') {
+        scanForProblems();
+      } else if (cmd === 'date') {
+        appendOutput(new Date().toLocaleString());
+      } else if (cmd === 'build' || cmd === 'npm run build') {
+        appendOutput('> aura-project@1.0.0 build');
+        appendOutput('> tsc && vite build');
+        appendOutput('✓ built in 1.23s');
+      } else if (cmd === 'aura --version') {
+        appendOutput('Aura IDE v4.0.0 (Cursor Evolution)');
+      } else if (cmd === 'whoami') {
+        appendOutput('aura-developer');
+      } else if (cmd === 'neofetch') {
+        appendOutput('      .---.      OS: Windows 11 / AuraOS 4.0.0');
+        appendOutput('     /     \\     Host: Aura Native Desktop');
+        appendOutput('    | () () |    Kernel: Native Bridge');
+        appendOutput('      |||||      Shell: PowerShell (Dual-Path)');
+      } else if (cmd.startsWith('git') || cmd.startsWith('npm')) {
+        if (isTauri && !nativeProjectPath) {
+          appendOutput(`[AURA INFO] Perintah "${cmd.split(' ')[0]}" memerlukan folder proyek yang dibuka secara Native.`);
+          appendOutput(`[ACTION] Klik ikon 'Folder dengan Kilat' (FolderTree) di toolbar Explorer.`);
+        } else if (!isTauri) {
+          appendOutput('[SIMULATOR] Fitur Terminal Native (NPM/Git/Build) hanya tersedia di aplikasi Desktop (.exe).');
+        }
+      } else {
+        appendOutput(`Command not found: ${val}`);
+      }
     }
   };
 
@@ -1767,6 +1758,7 @@ Integrations:
         activeFile={activeFile}
         isScanning={isScanning}
         scanForProblems={scanForProblems}
+        nativeProjectPath={nativeProjectPath}
       />
 
       </div>
