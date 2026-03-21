@@ -1464,7 +1464,6 @@ Integrations:
 
     return (
     <div className="flex flex-col h-screen text-gray-300 font-sans selection:bg-blue-500/30 bg-[#0c0c0c] overflow-hidden">
-      <TitleBar projectName={projectName} />
       <div 
         className={cn(
           "flex-1 flex overflow-hidden transition-all duration-300",
