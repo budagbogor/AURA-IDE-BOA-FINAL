@@ -1257,18 +1257,39 @@ Integrations:
         const mainCmd = parts[0];
         const args = parts.slice(1);
 
-        // Try direct command execution first (more likely to match allowlist)
+        // --- TRIPLE FALLBACK STRATEGY ---
         let child;
+        let lastError = null;
+
+        // 1. Try direct command execution
         try {
           child = await TauriCommand.create(mainCmd, args, { cwd: nativeProjectPath }).spawn();
-        } catch (e) {
-          // Fallback to powershell for complex commands or if direct fails
-          child = await TauriCommand.create(
-            'powershell',
-            ['-NoProfile', '-NonInteractive', '-Command', val],
-            { cwd: nativeProjectPath }
-          ).spawn();
+        } catch (e: any) {
+          lastError = e;
+          // 2. Try powershell fallback
+          try {
+            child = await TauriCommand.create(
+              'powershell',
+              ['-NoProfile', '-NonInteractive', '-Command', val],
+              { cwd: nativeProjectPath }
+            ).spawn();
+          } catch (e2: any) {
+            lastError = e2;
+            // 3. Try cmd.exe fallback (often more robust for .cmd/.bat files like npm)
+            try {
+              child = await TauriCommand.create(
+                'cmd',
+                ['/C', val],
+                { cwd: nativeProjectPath }
+              ).spawn();
+            } catch (e3: any) {
+              lastError = e3;
+              throw new Error(`Semua metode eksekusi gagal. Error terakhir: ${e3.message || 'Unknown'}`);
+            }
+          }
         }
+
+        if (!child) throw new Error("Gagal menginisialisasi proses child.");
 
         activeProcessRef.current = child;
 
@@ -1281,21 +1302,20 @@ Integrations:
         });
 
         child.on('close', (data: { code: number | null }) => {
-          const code = data?.code;
           activeProcessRef.current = null;
-          if (code === 0) {
-            appendOutput(`✓ Selesai (exit code: 0)`);
-          } else if (code !== null) {
-            appendOutput(`✗ Proses selesai dengan exit code: ${code}`);
+          if (data?.code === 0) {
+            appendOutput(`✓ Selesai`);
+          } else if (data?.code !== null) {
+            appendOutput(`✗ Selesai (Exit Code: ${data.code})`);
           }
         });
 
         return; 
       } catch (err: any) {
         console.error('Tauri Shell Error:', err);
-        appendOutput(`[SYSTEM ERROR] ${err?.message || 'Gagal menjalankan perintah native.'}`);
-        appendOutput(`[DEBUG] CWD: ${nativeProjectPath}`);
-        appendOutput(`[DEBUG] CMD: ${val}`);
+        appendOutput(`[SYSTEM ERROR] ${err?.message || 'Gagal menjalankan perintah.'}`);
+        appendOutput(`[TRACE] CWD: ${nativeProjectPath}`);
+        appendOutput(`[TRACE] CMD: ${val}`);
         activeProcessRef.current = null;
       }
     } else {
