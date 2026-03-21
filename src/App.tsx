@@ -149,6 +149,7 @@ interface FileItem {
   name: string;
   content: string;
   language: string;
+  path?: string;
 }
 
 interface ChatMessage {
