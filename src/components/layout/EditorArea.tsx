@@ -89,15 +89,24 @@ export const EditorArea: React.FC<EditorAreaProps> = ({
               <span className="text-xs font-medium">New File</span>
             </button>
             <button onClick={() => {
-              const url = prompt('Enter GitHub Repository URL (e.g. user/repo):');
+              const url = prompt('Enter GitHub Repository URL (e.g. https://github.com/user/repo):');
               if (url) {
-                const parts = url.split('/');
-                const name = parts[parts.length - 1];
-                const owner = parts[parts.length - 2];
-                if (owner && name) {
-                  handleCloneRepo({ name, owner: { login: owner }, full_name: url });
+                // Better regex to handle full URLs and short formats
+                const githubRegex = /(?:https?:\/\/github\.com\/|git@github\.com:)?([^\/\s]+)\/([^\/\s#?]+?)(?:\.git)?(?:\/|\s|$|#|\?)/i;
+                const match = url.trim().match(githubRegex);
+                
+                if (match && match[1] && match[2]) {
+                  const owner = match[1];
+                  const name = match[2];
+                  handleCloneRepo({ name, owner: { login: owner }, full_name: `${owner}/${name}` });
                 } else {
-                  alert('Invalid repository URL format. Please use "owner/repo"');
+                  // Fallback for very simple owner/repo input if regex didn't catch it
+                  const parts = url.trim().split('/');
+                  if (parts.length === 2) {
+                    handleCloneRepo({ name: parts[1], owner: { login: parts[0] }, full_name: url.trim() });
+                  } else {
+                    alert('Format URL GitHub tidak valid. Gunakan "https://github.com/owner/repo" atau "owner/repo"');
+                  }
                 }
               }
             }} className="flex flex-col items-center gap-2 p-4 bg-[#252526]/50 backdrop-blur-md hover:bg-[#2d2d2d] rounded-xl border border-white/5 transition-all group hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/10 active:scale-95">

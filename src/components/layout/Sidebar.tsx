@@ -137,6 +137,7 @@ interface SidebarProps {
   testingStatus: Record<string, 'idle' | 'loading' | 'success' | 'error'>;
   testAiConnection: (provider: 'gemini' | 'openrouter' | 'bytez' | 'sumopod') => Promise<void>;
   testGithubConnection: () => Promise<void>;
+  resetAllConnections: () => void;
   testError: Record<string, string>;
 }
 
@@ -165,7 +166,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   systemInstruction, setSystemInstruction, aiRules, setAiRules,
   selectedSkill, setSelectedSkill, context7Mode, setContext7Mode,
   supabaseUrl, setSupabaseUrl, supabaseAnonKey, setSupabaseAnonKey,
-  supabaseConnected, setSupabaseConnected, mcpServers, setMcpServers,
+  supabaseConnected, setSupabaseConnected,
+  resetAllConnections,
+  mcpServers, setMcpServers,
   selectedMcpTemplateIdx, setSelectedMcpTemplateIdx, mcpTemplateData, setMcpTemplateData,
   newMcpName, setNewMcpName, newMcpType, setNewMcpType,
   newMcpUrl, setNewMcpUrl, newMcpEnvStr, setNewMcpEnvStr,
@@ -988,6 +991,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         onTest={testSupabase}
                         label="Test Database Connection"
                       />
+                    </div>
+
+                    {/* Reset Connections Button */}
+                    <div className="pt-2">
+                      <button 
+                        onClick={resetAllConnections}
+                        className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/50 rounded-2xl text-[12px] font-bold text-red-400 transition-all group"
+                      >
+                        <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+                        Reset All Connections
+                      </button>
+                      <p className="text-[10px] text-gray-600 mt-2 text-center px-4 italic">
+                        Menghapus seluruh API Keys, Token, dan data login dari memori IDE.
+                      </p>
                     </div>
                   </div>
                 </section>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Bot, Sparkles, Box, Search, Shield, Activity, GitBranch, Cloudy, RefreshCw, Terminal, Keyboard } from 'lucide-react';
+import { X, Bot, Sparkles, Box, Search, Shield, Activity, GitBranch, Cloudy, RefreshCw, Terminal, Keyboard, Monitor, Smartphone, Cpu } from 'lucide-react';
 
 interface GuideModalProps {
   isOpen: boolean;
@@ -119,6 +119,33 @@ export function GuideModal({ isOpen, onClose }: GuideModalProps) {
                 </p>
               </div>
 
+            </div>
+
+            {/* Build System Guide */}
+            <div className="md:col-span-2 p-5 rounded-2xl border border-white/5 bg-white/[0.01] space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-[#858585] flex items-center gap-2">
+                <Cpu size={14} className="text-purple-400" /> Build System Guide (Cloud vs local)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-white text-xs font-bold">
+                    <Monitor size={14} className="text-blue-400" /> Windows (.exe)
+                  </div>
+                  <ul className="text-[11px] text-[#858585] space-y-1 list-disc pl-4">
+                    <li><b className="text-gray-300">Cloud Build</b>: Praktis, via GitHub Actions. Tidak butuh instal Rust di PC.</li>
+                    <li><b className="text-gray-300">Local Build</b>: Menggunakan Tauri. Memerlukan instalasi <code className="text-blue-300">Rust</code> & <code className="text-blue-300">Node.js</code>.</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-white text-xs font-bold">
+                    <Smartphone size={14} className="text-emerald-400" /> Android (.apk)
+                  </div>
+                  <ul className="text-[11px] text-[#858585] space-y-1 list-disc pl-4">
+                    <li><b className="text-gray-300">Cloud Build</b>: Otomatis via GitHub. Hasil APK bisa diunduh di tab Actions.</li>
+                    <li><b className="text-gray-300">Local Build</b>: Menggunakan Capacitor. Memerlukan <code className="text-emerald-300">Android Studio</code>.</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>

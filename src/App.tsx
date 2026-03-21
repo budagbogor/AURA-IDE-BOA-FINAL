@@ -285,55 +285,109 @@ export default function App() {
   const handleCloneRepo = async (repo: any) => {
     if (!githubToken) return;
 
-    let projectDirHandle: any = null;
-    try {
-      // @ts-ignore
-      const baseDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-      // Create a subfolder for the repo
-      projectDirHandle = await baseDirHandle.getDirectoryHandle(repo.name, { create: true });
-    } catch (err) {
-      console.log('User cancelled or directory picker unsupported:', err);
-      appendTerminalOutput('[GITHUB] Clone cancelled. Please select a folder to save the repository.');
-      return;
+    let selectedPath: string | null = null;
+    let projectDirHandle: any = null; // Web mode only
+
+    if (isTauri && tauriDialog) {
+      // Desktop Mode: Get real OS path
+      try {
+        const selected = await tauriDialog.open({
+          directory: true,
+          multiple: false,
+          title: `Pilih Folder untuk Meng-clone ${repo.name}`
+        });
+        if (selected && typeof selected === 'string') {
+          selectedPath = `${selected.replace(/\\/g, '/')}/${repo.name}`;
+          appendTerminalOutput(`[GITHUB] Target folder (Native): ${selectedPath}`);
+        } else {
+          appendTerminalOutput('[GITHUB] Clone dibatalkan oleh pengguna.');
+          return;
+        }
+      } catch (err) {
+        console.error('Tauri Dialog Error:', err);
+        return;
+      }
+    } else {
+      // Web Mode: Original Directory Picker
+      try {
+        // @ts-ignore
+        const baseDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        projectDirHandle = await baseDirHandle.getDirectoryHandle(repo.name, { create: true });
+      } catch (err) {
+        console.log('User cancelled or directory picker unsupported:', err);
+        appendTerminalOutput('[GITHUB] Clone cancelled. Please select a folder to save the repository.');
+        return;
+      }
     }
 
     setIsFetchingRepos(true);
-    appendTerminalOutput(`[GITHUB] Cloning repository ${repo.full_name} to local disk... (This might take a moment)`);
+    appendTerminalOutput(`[GITHUB] Cloning repository ${repo.full_name}...`);
     
     try {
       const { cloneRepository } = await import('./services/githubService');
       const clonedFiles = await cloneRepository(githubToken, repo.owner.login, repo.name);
       
       if (clonedFiles.length > 0) {
-        appendTerminalOutput(`[SYSTEM] Saving ${clonedFiles.length} files, recreating folder structure...`);
+        appendTerminalOutput(`[SYSTEM] Menyimpan ${clonedFiles.length} file ke ${selectedPath ? 'Disk Lokal' : 'Memori Browser'}...`);
         
-        // Write each file to the selected local directory maintaining structure
-        for (const file of clonedFiles) {
+        if (selectedPath && tauriFs) {
+          // Desktop Logic: Write to real disk using Tauri FS
           try {
+            await tauriFs.mkdir(selectedPath, { recursive: true });
+          } catch (e) {}
+
+          for (const file of clonedFiles) {
             const pathParts = file.id.split('/');
             const fileName = pathParts.pop()!;
+            let currentPath = selectedPath;
             
+            // Recreate folder structure
+            for (const dirName of pathParts) {
+              currentPath = `${currentPath}/${dirName}`;
+              try {
+                await tauriFs.mkdir(currentPath, { recursive: true });
+              } catch (e) {}
+            }
+            
+            await tauriFs.writeTextFile(`${currentPath}/${fileName}`, file.content);
+          }
+          
+          setNativeProjectPath(selectedPath);
+          // Update state immediately with cloned files so sidebar shows them right away
+          // We map the relative ID to absolute path for consistency with syncFilesFromNativePath
+          const mappedFiles = clonedFiles.map(f => ({
+            ...f,
+            id: `${selectedPath}/${f.id}`
+          }));
+          setFiles(mappedFiles);
+          
+          // Re-sync to ensure everything is perfect
+          await syncFilesFromNativePath(selectedPath);
+          
+          appendTerminalOutput(`[SUCCESS] Clone berhasil! Terminal kini aktif di: ${selectedPath}`);
+          alert(`Berhasil meng-clone ke ${selectedPath}. Terminal sekarang terhubung.`);
+        } else if (projectDirHandle) {
+          // Web Logic: Original FileSystem API
+          for (const file of clonedFiles) {
+            const pathParts = file.id.split('/');
+            const fileName = pathParts.pop()!;
             let currentDir = projectDirHandle;
             for (const dirName of pathParts) {
               currentDir = await currentDir.getDirectoryHandle(dirName, { create: true });
             }
-            
             const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
             const writable = await fileHandle.createWritable();
             await writable.write(file.content);
             await writable.close();
-          } catch (writeErr) {
-            console.error(`Error writing file ${file.id}:`, writeErr);
           }
+          setFiles(clonedFiles);
         }
 
-        setFiles(clonedFiles);
-        setActiveFileId(clonedFiles[0].id);
         setProjectName(repo.name.toUpperCase());
         setSidebarTab('files');
-        appendTerminalOutput(`[GITHUB] Successfully cloned and saved to local disk: ${repo.full_name}.`);
+        if (clonedFiles.length > 0) setActiveFileId(clonedFiles[0].id);
       } else {
-        appendTerminalOutput(`[GITHUB] Repository ${repo.full_name} is empty or no supported files found.`);
+        appendTerminalOutput(`[GITHUB] Repository ${repo.full_name} is empty.`);
       }
     } catch (error) {
       appendTerminalOutput(`[GITHUB] Error cloning repository: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -460,6 +514,36 @@ export default function App() {
       appendTerminalOutput(`[AI ERROR] ${provider.toUpperCase()}: ${err.message}`);
     }
   };
+
+  const resetAllConnections = () => {
+    if (!confirm("Apakah Anda yakin ingin menghapus SEMUA koneksi (API Keys, GitHub Token, Supabase)? Ini tidak dapat dibatalkan.")) return;
+
+    // Reset States
+    setGeminiApiKey('');
+    setOpenRouterApiKey('');
+    setBytezApiKey('');
+    setSumopodApiKey('');
+    setGithubToken('');
+    setGithubConnected(false);
+    setGithubUser(null);
+    setSupabaseUrl('');
+    setSupabaseAnonKey('');
+    setSupabaseConnected(false);
+    setTestingStatus({});
+    setTestError({});
+
+    // Reset LocalStorage
+    const keysToRemove = [
+      'aura_github_token', 'aura_supabase_url', 'aura_supabase_key', 
+      'aura_supabase_connected', 'aura_gemini_key', 'aura_openrouter_key', 
+      'aura_bytez_key', 'sumopodApiKey', 'aiProvider'
+    ];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
+    appendTerminalOutput('[SYSTEM] Seluruh koneksi dan kredensial telah dihapus.');
+    alert("Seluruh koneksi telah berhasil di-reset.");
+  };
+
   const [mcpServers, setMcpServers] = useState<any[]>(() => {
     const saved = localStorage.getItem('aura_mcp_servers');
     if (saved) {
@@ -764,7 +848,7 @@ export default function App() {
   };
 
   const handleSendMessage = async () => {
-    if (!chatInput.trim() && attachedFiles.length === 0 || isAiLoading || !activeFile) return;
+    if ((!chatInput.trim() && attachedFiles.length === 0) || isAiLoading) return;
 
     const userMsg: ChatMessage = { role: 'user', content: chatInput };
     setChatMessages(prev => [...prev, userMsg]);
@@ -1227,9 +1311,11 @@ Integrations:
       appendOutput('      |||||      Shell: PowerShell (Dual-Path)');
     } else if (cmd.startsWith('git') || cmd.startsWith('npm')) {
       if (isTauri) {
-        appendOutput(`[AURA INFO] Perintah "${cmd.split(' ')[0]}" perlu folder proyek terbuka secara Native.`);
+        appendOutput(`[AURA INFO] Perintah "${cmd.split(' ')[0]}" memerlukan folder proyek yang dibuka secara Native.`);
+        appendOutput(`[ACTION] Klik ikon 'Folder dengan Kilat' (FolderTree) di toolbar Explorer.`);
+        // We could theoretically trigger openFolderNative here if we want to be very proactive
       } else {
-        appendOutput('[SIMULATOR] Fitur ini hanya aktif di versi Desktop (.exe).');
+        appendOutput('[SIMULATOR] Fitur Terminal Native (NPM/Git/Build) hanya tersedia di aplikasi Desktop (.exe).');
       }
     } else {
       appendOutput(`Command not found: ${val}`);
@@ -1546,6 +1632,7 @@ Integrations:
         setSupabaseAnonKey={setSupabaseAnonKey}
         supabaseConnected={supabaseConnected}
         setSupabaseConnected={setSupabaseConnected}
+        resetAllConnections={resetAllConnections}
         mcpServers={mcpServers}
         setMcpServers={setMcpServers}
         selectedMcpTemplateIdx={selectedMcpTemplateIdx}
