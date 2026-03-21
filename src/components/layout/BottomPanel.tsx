@@ -125,20 +125,17 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
             </div>
 
             {/* Terminal Input Area */}
-            <div className="flex items-center text-white border-t border-white/5 px-2 py-1.5 bg-black/20">
-              <div className="flex items-center gap-1 mr-2 shrink-0">
-                <span className="text-emerald-500">➜</span>
+            <div className="flex items-center text-white border-t border-white/5 px-2 py-1.5 bg-black/20 font-mono">
+              <div className="flex items-center shrink-0">
+                <span className="text-emerald-500 mr-1">➜</span>
                 <span className="text-blue-400 font-bold">{displayPath}</span>
-                <span className="text-gray-500">$</span>
+                <span className="text-gray-500 ml-1">$</span>
               </div>
               <input 
                  type="text" 
                  value={terminalInput}
                  onChange={(e) => {
                    setTerminalInput(e.target.value);
-                   if (historyIndex === -1) {
-                     // Reset history if user starts typing manually
-                   }
                  }}
                  onKeyDown={(e) => {
                    if (e.key === 'ArrowUp') {
@@ -162,7 +159,7 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
                      handleTerminalCommand(e);
                    }
                  }}
-                 className="flex-1 bg-transparent border-none outline-none text-white font-mono placeholder:text-gray-700/50"
+                 className="flex-1 bg-transparent border-none outline-none text-white font-mono placeholder:text-gray-700/50 ml-2"
                  placeholder="type command..."
                  autoFocus
               />
