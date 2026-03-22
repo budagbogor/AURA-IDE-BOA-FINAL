@@ -1470,10 +1470,11 @@ Integrations:
   };
 
     return (
-    <div className="flex flex-col h-screen text-gray-300 font-sans selection:bg-blue-500/30 bg-[#0c0c0c] overflow-hidden">
+    <div className="h-[100dvh] w-full bg-[#1e1e1e] text-[#cccccc] flex flex-col overflow-hidden font-sans selection:bg-blue-500/30">
+      <TitleBar projectName={projectName} />
       <div 
         className={cn(
-          "flex-1 flex overflow-hidden transition-all duration-300",
+          "flex-1 flex min-h-0 overflow-hidden transition-all duration-300",
           layoutMode === 'modern' ? "flex-row-reverse" : "flex-row"
         )}
       >

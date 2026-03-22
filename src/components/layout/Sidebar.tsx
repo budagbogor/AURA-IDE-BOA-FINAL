@@ -225,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Activity Bar */}
       <div className={cn(
-        "w-14 bg-[#333333] flex flex-col items-center py-4 gap-4 z-50 glass-dark shrink-0",
+        "w-14 h-full bg-[#333333] flex flex-col items-center py-4 gap-4 z-50 glass-dark shrink-0",
         layoutMode === 'modern' ? "border-l border-white/5" : "border-r border-white/5"
       )}>
         <div 
@@ -313,7 +313,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         exit={{ width: 0, opacity: 0 }}
         style={{ width: sidebarWidth }}
         className={cn(
-          "bg-[#252526] flex flex-col overflow-hidden relative transition-[width] duration-75 shrink-0",
+          "bg-[#252526] h-full flex flex-col overflow-hidden relative transition-[width] duration-75 shrink-0",
           layoutMode === 'modern' ? "border-l border-white/5" : "border-r border-white/5"
         )}
       >
