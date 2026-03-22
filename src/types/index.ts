@@ -4,6 +4,7 @@ export interface FileItem {
   content: string;
   language: string;
   path?: string;
+  lastModified?: number;
 }
 
 export interface ChatMessage {

@@ -13,6 +13,7 @@ interface AiComposerPanelProps {
   files: FileItem[];
   activeFileId: string;
   onApplyCode: (filePath: string, content: string) => void;
+  onExecuteCommand?: (command: string) => void;
   appendTerminalOutput?: (msg: string) => void;
   projectTree?: string;
   messages: Message[];
@@ -32,6 +33,7 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
   files,
   activeFileId,
   onApplyCode,
+  onExecuteCommand,
   appendTerminalOutput,
   projectTree,
   messages,
@@ -72,35 +74,49 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
       let fullResponse = '';
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       
-      let lastUpdateTime = Date.now();
+      let lastUIUpdate = Date.now();
+      let lastApplyUpdate = Date.now();
+      let appliedCommands = new Set<string>();
+
       for await (const chunk of stream) {
         fullResponse += chunk;
         const now = Date.now();
-        if (now - lastUpdateTime > 50) {
+        
+        // 1. Update Chat UI (Text) - Throttle 100ms
+        if (now - lastUIUpdate > 100) {
           setMessages(prev => {
             const newMessages = [...prev];
-            newMessages[newMessages.length - 1].content = fullResponse;
+            const last = newMessages[newMessages.length - 1];
+            if (last) last.content = fullResponse;
             return newMessages;
           });
-          lastUpdateTime = now;
+          lastUIUpdate = now;
+        }
 
-          // Real-time zero click apply
-          const blockRegex = /\`\`\`(?:file|delete):([^\n]+)\n([\s\S]*?)(?:\`\`\`|$)/g;
+        // 2. Real-time Apply Code (Zero-Click) - Throttle 400ms
+        // This is heavy because it triggers global re-renders, so we do it less frequently.
+        if (now - lastApplyUpdate > 400) {
+          const fileRegex = /\`\`\`(?:file|delete):([^\n]+)\n([\s\S]*?)(?:\`\`\`|$)/g;
           let match;
-          while ((match = blockRegex.exec(fullResponse)) !== null) {
+          while ((match = fileRegex.exec(fullResponse)) !== null) {
             onApplyCode(match[1].trim(), match[2]);
           }
+          lastApplyUpdate = now;
         }
+
+        // 3. Command buffering - Do NOT execute during stream to avoid race conditions/hangs
+        // Commands will be executed ONLY after detection is stable or at the end.
       }
 
-      // Final render to print everything gracefully
+      // --- FINAL PASS (Safety & Consistency) ---
       setMessages(prev => {
         const newMessages = [...prev];
-        newMessages[newMessages.length - 1].content = fullResponse;
+        const last = newMessages[newMessages.length - 1];
+        if (last) last.content = fullResponse;
         return newMessages;
       });
 
-      // Final Apply Code
+      // Final Apply for all files
       const finalRegex = /\`\`\`(?:file|delete):([^\n]+)\n([\s\S]*?)(?:\`\`\`|$)/g;
       let finalMatch;
       let fileCount = 0;
@@ -109,8 +125,19 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
         fileCount++;
       }
 
+      // Final Terminal Commands - Execute only at the END for stability
+      const finalCmdRegex = /\`\`\`command:([^\n]+)\n?([\s\S]*?)(?:\`\`\`|$)/g;
+      let finalCmdMatch;
+      while ((finalCmdMatch = finalCmdRegex.exec(fullResponse)) !== null) {
+        const cmd = finalCmdMatch[1].trim();
+        if (!appliedCommands.has(cmd)) {
+          if (onExecuteCommand) onExecuteCommand(cmd);
+          appliedCommands.add(cmd);
+        }
+      }
+
       if (fileCount > 0 && appendTerminalOutput) {
-        appendTerminalOutput(`[AI ZERO-CLICK] Otomatis membuat/mengedit ${fileCount} file di Editor.`);
+        appendTerminalOutput(`[AI SUCCESS] Berhasil menerapkan ${fileCount} file ke Editor.`);
       }
 
     } catch (error: any) {
@@ -150,13 +177,15 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                 <Markdown
                   components={{
                     code({ node, inline, className, children, ...props }: any) {
-                      const match = /language-(file|delete):([^\n]+)/.exec(className || '');
-                      if (!inline && match) {
+                      const fileMatch = /language-(file|delete):([^\n]+)/.exec(className || '');
+                      const cmdMatch = /language-command:([^\n]+)/.exec(className || '');
+
+                      if (!inline && fileMatch) {
                         return (
                           <div className="my-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs flex items-center justify-between gap-3 shadow-sm backdrop-blur-sm">
                             <span className="flex items-center gap-2 font-mono break-all">
                               <span className="opacity-50 text-blue-300">File:</span> 
-                              <b>{match[2].trim()}</b>
+                              <b>{fileMatch[2].trim()}</b>
                             </span>
                             <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-bold uppercase tracking-wider text-[9px] animate-pulse whitespace-nowrap">
                               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_5px_rgba(96,165,250,0.8)]" />
@@ -165,6 +194,22 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                           </div>
                         );
                       }
+
+                      if (!inline && cmdMatch) {
+                        return (
+                          <div className="my-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center justify-between gap-3 shadow-sm backdrop-blur-sm">
+                            <span className="flex items-center gap-2 font-mono break-all">
+                              <span className="opacity-50 text-emerald-300">Terminal:</span> 
+                              <b>{cmdMatch[1].trim()}</b>
+                            </span>
+                            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-wider text-[9px] animate-pulse whitespace-nowrap">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]" />
+                              Menjalankan Perintah...
+                            </span>
+                          </div>
+                        );
+                      }
+                      
                       return (
                         <code className={className} {...props}>
                           {children}

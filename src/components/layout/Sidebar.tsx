@@ -489,23 +489,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   projectTree={files.map(f => f.id).join('\n')}
                   messages={composerMessages}
                   setMessages={setComposerMessages}
+                  onExecuteCommand={executeCommand}
                   onApplyCode={(path, content) => {
-                    setFiles(prev => {
-                      const exists = prev.find(f => f.id === path || f.name === path);
-                      if (exists) {
-                        return prev.map(f => f.id === exists.id ? { ...f, content } : f);
-                      } else {
-                        const newFile = { 
-                          id: path, 
-                          name: path.split('/').pop() || path, 
-                          content, 
-                          language: path.endsWith('.ts') || path.endsWith('.tsx') ? 'typescript' : 'javascript',
-                          path: path.includes('/') ? path : undefined
-                        };
-                        return [...prev, newFile];
+                    setFiles(currentFiles => {
+                      const idx = currentFiles.findIndex(f => f.id === path || f.name === path);
+                      if (idx !== -1) {
+                        const existing = currentFiles[idx];
+                        if (existing.content === content) return currentFiles;
+                        const updated = [...currentFiles];
+                        updated[idx] = { ...existing, content, lastModified: Date.now() };
+                        return updated;
                       }
+                      return [...currentFiles, { 
+                        id: path, 
+                        name: path.split('/').pop() || path, 
+                        content, 
+                        language: path.endsWith('.ts') || path.endsWith('.tsx') ? 'typescript' : 'javascript',
+                        lastModified: Date.now()
+                      }];
                     });
-                    setActiveFileId(path);
+                    if (activeFileId !== path) setActiveFileId(path);
                   }}
                 />
               </motion.div>
