@@ -11,7 +11,8 @@ import {
   Package, 
   Box, 
   Cloud,
-  ChevronRight
+  ChevronRight,
+  Smartphone
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -142,6 +143,15 @@ export const WorkflowDiagram: React.FC = () => {
               <div className="flex flex-col text-left">
                 <span className="text-[11px] font-semibold text-gray-200">Electron Build</span>
                 <span className="text-[9px] text-gray-500">Kompatibilitas luas</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 group">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                <Smartphone size={16} />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-[11px] font-semibold text-gray-200">Android APK</span>
+                <span className="text-[9px] text-gray-500">Build via Capacitor</span>
               </div>
             </div>
             <div className="flex items-center gap-3 group">
