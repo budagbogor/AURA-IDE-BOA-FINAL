@@ -215,6 +215,7 @@ export default function App() {
       import('@tauri-apps/plugin-shell').then(m => { setTauriCommand(() => m.Command); });
       import('@tauri-apps/plugin-dialog').then(m => { setTauriDialog(m); });
       import('@tauri-apps/plugin-fs').then(m => { setTauriFs(m); });
+      import('@tauri-apps/api/window').then(m => { m.getCurrentWindow().maximize().catch(() => {}); });
     }
     
     // Cleanup active process on unmount
@@ -625,7 +626,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Resizing State
-  const [sidebarWidth, setSidebarWidth] = useState(240);
+  const [sidebarWidth, setSidebarWidth] = useState(480);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(250);
   const [browserWidth, setBrowserWidth] = useState(window.innerWidth / 2);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
@@ -641,7 +642,7 @@ export default function App() {
         } else {
           newWidth = e.clientX - 56;
         }
-        if (newWidth > 150 && newWidth < 600) {
+        if (newWidth > 150 && newWidth < 900) {
           setSidebarWidth(newWidth);
         }
       }
