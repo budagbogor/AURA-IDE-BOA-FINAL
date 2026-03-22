@@ -71,7 +71,8 @@ interface SidebarProps {
   createNewFile: () => void;
   openFolder: () => void;
   closeFolder: () => void;
-  autoPreview: () => void;
+  autoPreview: (force?: boolean) => void;
+  onAiSuccess?: (stats: { fileCount: number; commands: string[] }) => void;
   exportProject: () => void;
   handleCloudSave: () => void;
   handleCloudLoad: () => void;
@@ -159,7 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   handleCloneRepo, browserUrl, setBrowserUrl, browserSrcDoc, setBrowserSrcDoc,
   setShowBrowser, isTauri, TauriCommand, openFolderNative,
   createNewFile, openFolder, closeFolder, exportProject,
-  autoPreview,
+  autoPreview, onAiSuccess,
   handleCloudSave, handleCloudLoad, handleGithubPush, executeCommand,
   appendTerminalOutput, handleContextMenu,
 
@@ -299,7 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => setSidebarTab('settings')}
             title="Settings"
             className={cn("p-2.5 cursor-pointer transition-all duration-200 rounded-xl group relative", sidebarTab === 'settings' ? "text-white bg-blue-600/20 shadow-lg shadow-blue-500/10" : "text-[#858585] hover:text-white hover:bg-white/5")}
-          >
+        >
             <Settings size={24} className={cn("transition-transform duration-200", sidebarTab === 'settings' && "scale-110")} />
             {sidebarTab === 'settings' && <motion.div layoutId="activeTab" className="absolute left-[-12px] w-1 h-8 bg-blue-500 rounded-r-full" />}
           </div>
@@ -376,7 +377,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <X size={14} />
                 </button>
                 <div className="w-[1px] h-3.5 bg-white/20 my-auto mx-1" />
-                <button onClick={autoPreview} title="Live Preview Auto" className="hover:text-green-400 transition-colors">
+                <button onClick={() => autoPreview()} title="Live Preview Auto" className="hover:text-green-400 transition-colors">
                   <Play size={14} />
                 </button>
                 <button onClick={exportProject} title="Export Project (ZIP)" className="hover:text-white transition-colors">
@@ -486,6 +487,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   files={files}
                   activeFileId={activeFileId}
                   appendTerminalOutput={appendTerminalOutput}
+                  onSuccess={onAiSuccess}
                   projectTree={files.map(f => f.id).join('\n')}
                   messages={composerMessages}
                   setMessages={setComposerMessages}

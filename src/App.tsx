@@ -1178,8 +1178,39 @@ Integrations:
     }
   };
 
-  const handleAutoPreview = () => {
-    setShowBrowser(true);
+  const handleAiSuccess = (stats: { fileCount: number; commands: string[] }) => {
+    appendTerminalOutput(`[AURA MAGIC] AI selesai memodifikasi ${stats.fileCount} file.`);
+    
+    const packageJson = files.find(f => f.name === 'package.json');
+    if (packageJson) {
+      appendTerminalOutput('[AURA MAGIC] Terdeteksi package.json. Menyiapkan environment...');
+      
+      // Auto-run install and start if it looks like a new project or significant change
+      if (stats.fileCount > 3 || stats.commands.some(c => c.includes('create-react-app') || c.includes('vite'))) {
+        executeCommand('npm install && npm start');
+        appendTerminalOutput('[AURA MAGIC] Menjalankan npm install & start di latar belakang...');
+        
+        // Wait for dev server to potentially start, then switch to browser
+        setTimeout(() => {
+          setSidebarTab('browser');
+          handleAutoPreview(true);
+        }, 5000);
+      } else {
+        handleAutoPreview(true);
+      }
+    } else {
+      // Static/React Sandbox
+      handleAutoPreview(true);
+      setSidebarTab('browser');
+    }
+  };
+
+  const handleAutoPreview = (force: boolean = false) => {
+    if (!force) setShowBrowser(true);
+    else {
+      setShowBrowser(true);
+      setSidebarTab('browser');
+    }
     const hasPackageJson = files.some(f => f.name === 'package.json');
     const activeFileIsReact = activeFile?.name.endsWith('.tsx') || activeFile?.name.endsWith('.jsx');
     
@@ -1765,6 +1796,7 @@ Integrations:
         openFolder={openFolder}
         closeFolder={closeFolder}
         autoPreview={handleAutoPreview}
+        onAiSuccess={handleAiSuccess}
         exportProject={exportProject}
         handleCloudSave={handleCloudSave}
         handleCloudLoad={handleCloudLoad}

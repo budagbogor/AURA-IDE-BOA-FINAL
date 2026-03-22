@@ -16,6 +16,7 @@ interface AiComposerPanelProps {
   onExecuteCommand?: (command: string) => void;
   appendTerminalOutput?: (msg: string) => void;
   projectTree?: string;
+  onSuccess?: (stats: { fileCount: number; commands: string[] }) => void;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
@@ -36,6 +37,7 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
   onExecuteCommand,
   appendTerminalOutput,
   projectTree,
+  onSuccess,
   messages,
   setMessages
 }) => {
@@ -138,6 +140,7 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
 
       if (fileCount > 0 && appendTerminalOutput) {
         appendTerminalOutput(`[AI SUCCESS] Berhasil menerapkan ${fileCount} file ke Editor.`);
+        if (onSuccess) onSuccess({ fileCount, commands: Array.from(appliedCommands) });
       }
 
     } catch (error: any) {
