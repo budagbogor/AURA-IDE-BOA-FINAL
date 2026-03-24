@@ -662,12 +662,14 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Resizing State
-  const [sidebarWidth, setSidebarWidth] = useState(480);
+  const [sidebarWidth, setSidebarWidth] = useState(300);
+  const [aiPanelWidth, setAiPanelWidth] = useState(450);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(250);
   const [browserWidth, setBrowserWidth] = useState(window.innerWidth / 2);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [isResizingBottom, setIsResizingBottom] = useState(false);
   const [isResizingBrowser, setIsResizingBrowser] = useState(false);
+  const [isResizingAiPanel, setIsResizingAiPanel] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -696,16 +698,29 @@ export default function App() {
           setBrowserWidth(newWidth);
         }
       }
+
+      if (isResizingAiPanel) {
+        let newWidth;
+        if (layoutMode === 'modern') {
+          newWidth = e.clientX - 56; // In modern, AI is on the left
+        } else {
+          newWidth = window.innerWidth - e.clientX;
+        }
+        if (newWidth > 200 && newWidth < 800) {
+          setAiPanelWidth(newWidth);
+        }
+      }
     };
 
     const handleMouseUp = () => {
       setIsResizingSidebar(false);
       setIsResizingBottom(false);
       setIsResizingBrowser(false);
+      setIsResizingAiPanel(false);
       document.body.style.cursor = 'default';
     };
 
-    if (isResizingSidebar || isResizingBottom || isResizingBrowser) {
+    if (isResizingSidebar || isResizingBottom || isResizingBrowser || isResizingAiPanel) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -714,7 +729,7 @@ export default function App() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizingSidebar, isResizingBottom, isResizingBrowser, layoutMode]);
+  }, [isResizingSidebar, isResizingBottom, isResizingBrowser, isResizingAiPanel, layoutMode]);
 
   useEffect(() => {
     localStorage.setItem('aura_gemini_key', geminiApiKey);
@@ -2163,11 +2178,24 @@ Integrations:
       {/* 3rd Column (Right Panel): AI Chat / Composer */}
       {!zenMode && showAiPanel && (
         <div 
+          style={{ width: aiPanelWidth }}
           className={cn(
-            "h-full w-[360px] flex flex-col shrink-0 bg-[#202021] z-30 transition-all duration-300 shadow-2xl",
+            "h-full flex flex-col shrink-0 bg-[#202021] z-30 transition-all duration-300 shadow-2xl relative",
             layoutMode === 'modern' ? "border-r border-white/5" : "border-l border-white/5"
           )}
         >
+          {/* Vertical Resizer Handle for AI Panel */}
+          <div 
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizingAiPanel(true);
+              document.body.style.cursor = 'col-resize';
+            }}
+            className={cn(
+              "absolute top-0 bottom-0 w-1 px-0.5 cursor-col-resize hover:bg-blue-500/40 transition-colors z-50",
+              layoutMode === 'modern' ? "right-0 translate-x-1/2" : "left-0 -translate-x-1/2"
+            )}
+          />
           <div className="p-3 border-b border-white/5 bg-[#252526]/80 backdrop-blur-md flex items-center justify-between shrink-0">
             <span className="text-[11px] font-black tracking-widest uppercase text-blue-400 flex items-center gap-2">
               <Sparkles size={14} /> Aura AI Prompt
