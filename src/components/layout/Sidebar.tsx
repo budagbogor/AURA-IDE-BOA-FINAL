@@ -449,10 +449,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
         
         {/* Sidebar Header */}
-        <div className="p-4 text-[11px] uppercase tracking-widest font-black text-[#bbbbbb] flex justify-between items-center border-b border-white/5 bg-[#252526]/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="p-3 text-[11px] uppercase tracking-widest font-black text-[#bbbbbb] flex justify-between items-center border-b border-white/5 bg-[#252526]/50 backdrop-blur-sm sticky top-0 z-10 min-h-[44px]">
           <span className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse" />
-            {sidebarTab === 'files' && 'Explorer'}
+            {sidebarTab === 'files' && ''}
             {sidebarTab === 'search' && 'Search'}
             {sidebarTab === 'git' && 'Source Control'}
             {sidebarTab === 'ai' && 'Aura AI Chat'}
@@ -461,44 +461,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {sidebarTab === 'browser' && 'Browser'}
             {sidebarTab === 'database' && 'Database Explorer'}
           </span>
-          <div className="flex gap-2.5">
+          <div className="flex items-center gap-2">
             {sidebarTab === 'ai' && (
               <button onClick={() => setChatMessages([])} title="Clear Chat" className="hover:text-white transition-colors">
                 <RefreshCw size={14} />
               </button>
             )}
             {sidebarTab === 'files' && (
-              <div className="flex gap-2.5">
+              <div className="flex items-center gap-2.5">
                 <button onClick={createNewFile} title="New File" className="hover:text-white transition-colors">
                   <Plus size={14} />
-                </button>
-                <button onClick={openFolder} title="Open Folder Lokal (Web)" className="hover:text-white transition-colors">
-                  <FolderOpen size={14} />
                 </button>
                 {TauriCommand && (
                   <button onClick={openFolderNative} title="Open Folder Proyek (Native - Support Terminal/NPM)" className="hover:text-yellow-400 transition-colors relative group">
                     <FolderTree size={14} />
                   </button>
                 )}
+                <button onClick={openFolder} title="Open Folder Lokal (Web)" className="hover:text-white transition-colors">
+                  <FolderOpen size={14} />
+                </button>
+                
+                <div className="w-[1px] h-3.5 bg-white/10 my-auto mx-0.5" />
+                
+                <button onClick={handleGithubPush} title="Push Project to GitHub" className="hover:text-[#adbac7] transition-colors relative group">
+                  <Github size={14} />
+                  <div className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                </button>
                 <button onClick={handleCloudSave} title="Save to Supabase Cloud" className="hover:text-emerald-400 transition-colors">
                   <CloudUpload size={14} />
                 </button>
                 <button onClick={handleCloudLoad} title="Load from Supabase Cloud" className="hover:text-blue-400 transition-colors">
                   <CloudDownload size={14} />
                 </button>
-                <button onClick={handleGithubPush} title="Push Project to GitHub" className="hover:text-[#adbac7] transition-colors relative group">
-                  <Github size={14} />
-                  <div className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                </button>
-                <button onClick={closeFolder} title="Close Folder" className="hover:text-red-400 transition-colors">
-                  <X size={14} />
-                </button>
-                <div className="w-[1px] h-3.5 bg-white/20 my-auto mx-1" />
+
+                <div className="w-[1px] h-3.5 bg-white/10 my-auto mx-0.5" />
+                
                 <button onClick={() => autoPreview()} title="Live Preview Auto" className="hover:text-green-400 transition-colors">
                   <Play size={14} />
                 </button>
                 <button onClick={exportProject} title="Export Project (ZIP)" className="hover:text-white transition-colors">
                   <Download size={14} />
+                </button>
+
+                <div className="w-[1px] h-3.5 bg-white/10 my-auto mx-0.5" />
+
+                <button onClick={closeFolder} title="Close Folder" className="hover:text-red-400 transition-colors">
+                  <X size={14} />
                 </button>
               </div>
             )}
