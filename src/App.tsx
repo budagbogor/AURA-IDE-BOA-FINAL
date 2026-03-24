@@ -28,25 +28,38 @@ import {
   Github,
   Download,
   ExternalLink,
+  Undo,
+  Redo,
+  Scissors,
+  Copy,
+  Clipboard,
+  Replace,
+  PanelLeft,
+  PanelRight,
+  PanelBottom,
+  Eye,
+  EyeOff,
+  Layout,
+  HelpCircle,
+  BookOpen,
+  Info,
+  RefreshCw,
+  FolderPlus,
+  FilePlus,
+  Package,
+  Globe,
+  Database,
   Paperclip,
   Image as ImageIcon,
   File as FileIcon,
   AlertCircle,
   AlertTriangle,
-  Info,
   CheckCircle,
-  RefreshCw,
-  Globe,
   ArrowLeft,
   ArrowRight,
   RotateCcw,
   Maximize2,
-  Layout,
-  Eye,
-  EyeOff,
   Folder,
-  HelpCircle,
-  BookOpen,
   Keyboard,
   FolderTree,
   CloudUpload,
@@ -299,7 +312,7 @@ export default function App() {
     { role: 'assistant', content: 'Welcome to **Aura AI IDE**. I am your coding assistant. How can I help you today?' }
   ]);
   const [composerMessages, setComposerMessages] = useState<any[]>([
-    { role: 'assistant', content: 'Halo! Saya adalah Aura AI Composer. Ketik permintaan Anda, dan saya akan membuat/mengedit kode untuk Anda.' }
+    { role: 'assistant', content: 'Assalamualaikum...' }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -841,7 +854,7 @@ export default function App() {
     }
   };
 
-  const relayout = (preset: 'default' | 'zen' | 'modern') => {
+  const relayout = (preset: 'default' | 'zen') => {
     if (preset === 'default') {
       setLayoutMode('classic');
       setZenMode(false);
@@ -854,11 +867,8 @@ export default function App() {
       setShowAiPanel(false);
       setShowBottomPanel(false);
       setShowBrowser(false);
-    } else if (preset === 'modern') {
-      setLayoutMode('modern');
-      setZenMode(false);
     }
-    const displayPreset = preset === 'default' ? 'DEFAULT LOOK' : preset === 'zen' ? 'ZEN ONLY' : 'MODERN';
+    const displayPreset = preset === 'default' ? 'DEFAULT LOOK' : 'ZEN ONLY';
     appendTerminalOutput(`[SYSTEM] Layout switched to ${displayPreset} mode.`);
   };
 
@@ -1611,99 +1621,165 @@ Integrations:
     <div className="h-[100dvh] w-full bg-[#1e1e1e] text-[#cccccc] flex flex-col overflow-hidden font-sans selection:bg-blue-500/30 relative">
       <TitleBar projectName={projectName} />
       
-      {/* Top Menu Bar */}
-      <div className="h-8 bg-[#1e1e1e] border-b border-white/5 flex items-center px-4 text-[12px] text-[#cccccc] gap-4 shrink-0 z-[60] relative">
-        <div className="relative group cursor-pointer hover:text-white px-2 py-1.5">
+      {/* Top Menu Bar Professional */}
+      <div className="h-8 bg-[#1e1e1e] border-b border-white/5 flex items-center px-4 text-[12px] text-[#cccccc] gap-1 shrink-0 z-[60] relative">
+        {/* File Menu */}
+        <div className="relative group cursor-pointer hover:text-white px-3 py-1.5 transition-colors rounded">
           <span>File</span>
-          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[220px]">
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={createNewFile}>New File</div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setShowCreateProjectModal(true)}>New Project / Clone Repo</div>
-            <div className="h-[1px] bg-white/10 my-1"></div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={isTauri ? openFolderNative : openFolder}>Open Folder...</div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={closeFolder}>Close Folder</div>
-            <div className="h-[1px] bg-white/10 my-1"></div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex justify-between" onClick={handleSaveFile}>
-              <span>Save Active File</span>
-              <span className="text-[10px] text-gray-500 group-hover:text-blue-200">Ctrl+S</span>
+          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[240px] z-[70] backdrop-blur-xl bg-opacity-95">
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={createNewFile}>
+              <div className="flex items-center gap-2"><FilePlus size={14} /> <span>New File</span></div>
+              <span className="text-[10px] opacity-40">Ctrl+N</span>
             </div>
-            <div className="h-[1px] bg-white/10 my-1"></div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={exportProject}>Export Project (ZIP)</div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => setShowCreateProjectModal(true)}>
+              <FolderPlus size={14} /> <span>New Project / Clone</span>
+            </div>
+            <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={isTauri ? openFolderNative : openFolder}>
+              <FolderOpen size={14} /> <span>Open Folder...</span>
+            </div>
+            <div className="px-3 py-1.5 hover:bg-red-500/20 hover:text-red-400 cursor-pointer transition-colors flex items-center gap-2" onClick={closeFolder}>
+              <X size={14} /> <span>Close Project</span>
+            </div>
+            <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={handleSaveFile}>
+              <div className="flex items-center gap-2"><Save size={14} /> <span>Save Active File</span></div>
+              <span className="text-[10px] opacity-40">Ctrl+S</span>
+            </div>
+            <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+            <div className="px-3 py-1.5 hover:bg-emerald-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={exportProject}>
+              <Download size={14} /> <span>Export Project (ZIP)</span>
+            </div>
           </div>
         </div>
-        <div className="relative group cursor-pointer hover:text-white px-2 py-1.5">
+
+        {/* Edit Menu */}
+        <div className="relative group cursor-pointer hover:text-white px-3 py-1.5 transition-colors rounded">
           <span>Edit</span>
-          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[200px]">
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex justify-between" onClick={() => setSidebarTab('search')}>
-              <span>Find in Files</span>
-              <span className="text-[10px] text-gray-500 group-hover:text-blue-200">Ctrl+Shift+F</span>
+          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[220px] z-[70] backdrop-blur-xl bg-opacity-95">
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between opacity-50">
+              <div className="flex items-center gap-2"><Undo size={14} /> <span>Undo</span></div>
+              <span className="text-[10px] opacity-40">Ctrl+Z</span>
+            </div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between opacity-50">
+              <div className="flex items-center gap-2"><Redo size={14} /> <span>Redo</span></div>
+              <span className="text-[10px] opacity-40">Ctrl+Y</span>
+            </div>
+            <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between opacity-50">
+              <div className="flex items-center gap-2"><Scissors size={14} /> <span>Cut</span></div>
+              <span className="text-[10px] opacity-40">Ctrl+X</span>
+            </div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between opacity-50">
+              <div className="flex items-center gap-2"><Copy size={14} /> <span>Copy</span></div>
+              <span className="text-[10px] opacity-40">Ctrl+C</span>
+            </div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between opacity-50">
+              <div className="flex items-center gap-2"><Clipboard size={14} /> <span>Paste</span></div>
+              <span className="text-[10px] opacity-40">Ctrl+V</span>
+            </div>
+            <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={() => setSidebarTab('search')}>
+              <div className="flex items-center gap-2"><Search size={14} /> <span>Find in Files</span></div>
+              <span className="text-[10px] opacity-40">Ctrl+Shift+F</span>
             </div>
           </div>
         </div>
-        <div className="relative group cursor-pointer hover:text-white px-2 py-1.5">
+
+        {/* View Menu */}
+        <div className="relative group cursor-pointer hover:text-white px-3 py-1.5 transition-colors rounded">
           <span>View</span>
-          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[240px]">
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex justify-between items-center" onClick={() => {
-              const newState = !showAiPanel;
-              setShowAiPanel(newState);
-              if (newState && sidebarTab === 'ai') setSidebarTab('files');
-            }}>
-              <span>Aura AI Prompt (Kanan)</span>
+          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[260px] z-[70] backdrop-blur-xl bg-opacity-95">
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={() => setShowAiPanel(!showAiPanel)}>
+              <div className="flex items-center gap-2"><PanelRight size={14} /> <span>Aura AI Assistant Panel</span></div>
               {showAiPanel && <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>}
             </div>
-
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex justify-between items-center" onClick={() => setShowBottomPanel(!showBottomPanel)}>
-              <span>Terminal & Output (Bawah)</span>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={() => setShowBottomPanel(!showBottomPanel)}>
+              <div className="flex items-center gap-2"><PanelBottom size={14} /> <span>Terminal & Output View</span></div>
               {showBottomPanel && <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>}
             </div>
-            <div className="h-[1px] bg-white/10 my-1"></div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setSidebarTab('files')}>Explorer</div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setSidebarTab('git')}>Source Control (Git)</div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setSidebarTab('database')}>Databases</div>
-            <div className="h-[1px] bg-white/10 my-1"></div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setLayoutMode(layoutMode === 'classic' ? 'modern' : 'classic')}>Toggle Layout (Classic/Modern)</div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex justify-between" onClick={() => setZenMode(!zenMode)}>
-              <span>Toggle Zen Mode</span>
-              {zenMode && <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>}
+            <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => setSidebarTab('files')}>
+              <FileCode size={14} className="text-blue-400" /> <span>Explorer</span>
+            </div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => setSidebarTab('git')}>
+              <Github size={14} /> <span>Source Control</span>
+            </div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => setSidebarTab('database')}>
+              <Database size={14} /> <span>Databases</span>
+            </div>
+            <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+            <div className="px-3 py-1.5 hover:bg-blue-400 hover:text-white cursor-pointer transition-colors flex items-center justify-between group/item" onClick={() => relayout('default')}>
+              <div className="flex items-center gap-2"><Layout size={14} /> <span>Layout: Default</span></div>
+              {!zenMode && <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>}
+            </div>
+            <div className="px-3 py-1.5 hover:bg-purple-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={() => relayout('zen')}>
+              <div className="flex items-center gap-2"><Eye size={14} /> <span>Layout: Zen Mode</span></div>
+              {zenMode && <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>}
             </div>
           </div>
         </div>
-        <div className="relative group cursor-pointer hover:text-white px-2 py-1.5">
+
+        {/* Terminal Menu */}
+        <div className="relative group cursor-pointer hover:text-white px-3 py-1.5 transition-colors rounded">
           <span>Terminal</span>
-          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[200px]">
-             <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => addTerminalSession()}>New Terminal</div>
-             <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => executeCommand('clear')}>Clear Terminal</div>
-             <div className="h-[1px] bg-white/10 my-1"></div>
-             <div className="px-4 py-2 hover:bg-emerald-600 hover:text-white cursor-pointer transition-colors flex justify-between" onClick={() => executeCommand('npm start')}>
-               <span>Run npm start</span>
-               <span className="text-[10px] text-gray-500 group-hover:text-emerald-200">Start Project</span>
+          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[220px] z-[70] backdrop-blur-xl bg-opacity-95">
+             <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => addTerminalSession()}>
+               <Plus size={14} /> <span>New Terminal</span>
              </div>
-             <div className="px-4 py-2 hover:bg-emerald-600 hover:text-white cursor-pointer transition-colors flex justify-between" onClick={() => executeCommand('npm run dev')}>
-               <span>Run npm run dev</span>
-               <span className="text-[10px] text-gray-500 group-hover:text-emerald-200">Dev Server</span>
+             <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => executeCommand('clear')}>
+               <RefreshCw size={14} /> <span>Clear Terminal</span>
              </div>
-             <div className="px-4 py-2 hover:bg-purple-600 hover:text-white cursor-pointer transition-colors flex justify-between" onClick={() => executeCommand('npm run build')}>
-               <span>Run npm build</span>
-               <span className="text-[10px] text-gray-500 group-hover:text-purple-200">Production</span>
+             <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+             <div className="px-3 py-1.5 hover:bg-emerald-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between group/cmd" onClick={() => executeCommand('npm run dev')}>
+               <div className="flex items-center gap-2"><Play size={14} className="text-emerald-400" /> <span>Run Dev Server</span></div>
+               <span className="text-[9px] opacity-40 uppercase">npm dev</span>
              </div>
-             <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex justify-between" onClick={() => executeCommand('npm install')}>
-               <span>Run npm install</span>
-               <span className="text-[10px] text-gray-500 group-hover:text-blue-200">Dependencies</span>
+             <div className="px-3 py-1.5 hover:bg-purple-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={() => executeCommand('npm run build')}>
+               <div className="flex items-center gap-2"><Package size={14} className="text-purple-400" /> <span>Build Application</span></div>
+               <span className="text-[9px] opacity-40 uppercase">npm build</span>
+             </div>
+             <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between" onClick={() => executeCommand('npm install')}>
+               <div className="flex items-center gap-2"><RefreshCw size={14} className="text-blue-400" /> <span>Install/Update</span></div>
+               <span className="text-[9px] opacity-40 uppercase">npm install</span>
              </div>
           </div>
         </div>
-        <div className="relative group cursor-pointer hover:text-white px-2 py-1.5">
+
+        {/* Settings Menu */}
+        <div className="relative group cursor-pointer hover:text-white px-3 py-1.5 transition-colors rounded">
           <span>Settings</span>
-          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[200px]">
-             <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setSidebarTab('settings')}>Pengaturan Global</div>
-             <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setSidebarTab('github')}>Koneksi GitHub</div>
-             <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setSidebarTab('database')}>Koneksi Database</div>
+          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[220px] z-[70] backdrop-blur-xl bg-opacity-95">
+             <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => setSidebarTab('settings')}>
+               <Settings size={14} /> <span>Global Settings</span>
+             </div>
+             <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => setSidebarTab('github')}>
+               <Github size={14} /> <span>GitHub Sync Config</span>
+             </div>
+             <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => setSidebarTab('database')}>
+               <Database size={14} /> <span>Database Explorer</span>
+             </div>
+             <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+             <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={resetAllConnections}>
+               <RefreshCw size={14} /> <span>Reset All Connectors</span>
+             </div>
           </div>
         </div>
-        <div className="relative group cursor-pointer hover:text-white px-2 py-1.5">
+
+        {/* Help Menu */}
+        <div className="relative group cursor-pointer hover:text-white px-3 py-1.5 transition-colors rounded">
           <span>Help</span>
-          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[160px]">
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => setShowGuideModal(true)}>Read Guidance & Tips</div>
-            <div className="px-4 py-2 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors" onClick={() => window.open('https://github.com/budagbogor/AURA-IDE-BOA', '_blank')}>GitHub Repository</div>
+          <div className="absolute top-full left-0 mt-0 bg-[#252526] border border-white/10 rounded shadow-2xl py-1 hidden group-hover:block min-w-[200px] z-[70] backdrop-blur-xl bg-opacity-95">
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => setShowGuideModal(true)}>
+              <BookOpen size={14} /> <span>Guidance & Tips</span>
+            </div>
+            <div className="px-3 py-1.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex items-center gap-2" onClick={() => window.open('https://github.com/budagbogor/AURA-IDE-BOA', '_blank')}>
+              <Github size={14} /> <span>Source Repository</span>
+            </div>
+            <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+            <div className="px-3 py-1.5 flex items-center gap-2 text-white/40 cursor-default">
+              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.0.0-PRO</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1825,7 +1901,6 @@ Integrations:
                     } 
                   },
                   { icon: <Layout size={16} />, label: 'Relayout: Default', action: () => relayout('default') },
-                  { icon: <Layout size={16} />, label: 'Relayout: Modern', action: () => relayout('modern') },
                   { icon: <Eye size={16} />, label: 'Relayout: Zen', action: () => relayout('zen') },
                   { icon: <FileCode size={16} />, label: 'Create New File', action: createNewFile },
                   { icon: <FolderOpen size={16} />, label: 'Open Folder', action: openFolder },

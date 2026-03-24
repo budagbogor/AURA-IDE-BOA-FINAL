@@ -81,7 +81,7 @@ interface SidebarProps {
   handleContextMenu: (e: React.MouseEvent, fileId: string) => void;
 
   // Settings specific state
-  relayout: (preset: 'default' | 'zen' | 'modern') => void;
+  relayout: (preset: 'default' | 'zen') => void;
   setLayoutMode: (mode: 'classic' | 'modern') => void;
   setZenMode: (mode: boolean) => void;
   aiProvider: 'gemini' | 'openrouter' | 'bytez' | 'sumopod';

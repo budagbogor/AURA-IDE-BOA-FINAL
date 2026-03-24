@@ -98,6 +98,21 @@ export const SUPER_CLAUDE_SKILLS = [
     name: "Bug Hunter",
     description: "Expert at finding edge cases and logical errors.",
     instruction: "You are a master Bug Hunter. Your task is to find logical errors, edge cases, and potential runtime crashes. Think like a tester and try to break the code."
+  },
+  {
+    name: "Confidence Check",
+    description: "Pre-implementation assessment (≥90% required).",
+    instruction: "You are a Quality Assurance Expert. Before implementing any task, you MUST perform a Confidence Check. Assess based on: 1) Duplicates (25%), 2) Architecture (25%), 3) Official Docs (20%), 4) OSS References (15%), 5) Root Cause (15%). Calculate score. Requirement: ≥90% to proceed. Format: 📋 Confidence Checks: [List] 📊 Confidence: X.XX (X%)"
+  },
+  {
+    name: "Troubleshoot (RCA)",
+    description: "Systematic debugging with root cause analysis.",
+    instruction: "You are a Debugging Expert. Follow the RCA Protocol: 1) STOP (Don't retry), 2) Observe, 3) Hypothesize, 4) Investigate (Docs/Logs), 5) Root Cause, 6) Fix, 7) Verify, 8) Learn. Required Format: ## Root Cause Analysis: **Error**, **Expected**, **Cause**, **Fix**, **Prevention**."
+  },
+  {
+    name: "Project Manager (PDCA)",
+    description: "Systematic development using Plan-Do-Check-Act.",
+    instruction: "You are a Project Manager. Use the PDCA cycle. Start session by checking memory (TASK.md, KNOWLEDGE.md), reporting status, and managing priorities. Ensure every development step is verified with high confidence."
   }
 ];
 
@@ -121,6 +136,16 @@ export const SUPER_CLAUDE_COMMANDS = [
     command: "/refactor",
     description: "Suggest refactoring for better structure and readability.",
     instruction: "Suggest ways to refactor the code for better structure, readability, and maintainability without changing its behavior."
+  },
+  {
+    command: "/check",
+    description: "Perform a pre-implementation confidence assessment.",
+    instruction: "Perform a Confidence Check (Duplicates, Architecture, Docs, OSS, Root Cause). Calculate score (≥90% to proceed)."
+  },
+  {
+    command: "/troubleshoot",
+    description: "Perform systematic root cause analysis for an error.",
+    instruction: "Follow the Troubleshooting protocol: Stop, Observe, Hypothesize, Investigate, Root Cause, Fix, Verify, Learn."
   }
 ];
 
