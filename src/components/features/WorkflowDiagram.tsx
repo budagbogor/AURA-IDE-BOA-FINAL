@@ -160,11 +160,6 @@ export const WorkflowDiagram: React.FC = () => {
 
       </div>
       
-      {/* Legend / Tip */}
-      <div className="mt-8 flex items-center justify-center gap-2 text-[10px] text-gray-600 italic">
-        <Zap size={10} className="text-amber-500/50" />
-        <span>Tip: Gunakan AI Composer untuk mempercepat proses dari Source ke Deliverable.</span>
-      </div>
     </motion.div>
   );
 };
