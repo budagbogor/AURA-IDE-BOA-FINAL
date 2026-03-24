@@ -858,16 +858,26 @@ export default function App() {
     lines.forEach((line, index) => {
       // Simple regex checks
       if (line.includes('console.log')) {
-        localProblems.push({ line: index + 1, severity: 'info', message: 'Consider removing console.log for production.' });
+        localProblems.push({ line: index + 1, severity: 'info', message: '💡 [TIP] Gunakan logger kustom daripada console.log di production.' });
       }
       if (line.includes('any') && activeFile.language === 'typescript') {
-        localProblems.push({ line: index + 1, severity: 'warning', message: 'Avoid using "any" type in TypeScript.' });
+        localProblems.push({ line: index + 1, severity: 'warning', message: '⚠️ [TS] Hindari tipe "any". Gunakan interface atau tipe yang lebih spesifik.' });
       }
       if (line.match(/var\s+/)) {
-        localProblems.push({ line: index + 1, severity: 'warning', message: 'Use "let" or "const" instead of "var".' });
+        localProblems.push({ line: index + 1, severity: 'warning', message: '⚠️ [JS] Gunakan "let" atau "const" alih-alih "var".' });
       }
       if (line.match(/==\s+/) && !line.includes('===')) {
-        localProblems.push({ line: index + 1, severity: 'warning', message: 'Use strict equality (===) instead of (==).' });
+        localProblems.push({ line: index + 1, severity: 'warning', message: '⚠️ [JS] Gunakan strict equality (===) untuk perbandingan yang lebih aman.' });
+      }
+      // Security & Best Practices
+      if (line.includes('eval(')) {
+        localProblems.push({ line: index + 1, severity: 'error', message: '🚫 [SECURITY] Bahaya penggunaan eval()! Ini dapat memicu XSS.' });
+      }
+      if (line.includes('innerHTML')) {
+        localProblems.push({ line: index + 1, severity: 'warning', message: '⚠️ [SECURITY] Hati-hati dengan innerHTML. Gunakan textContent jika memungkinkan.' });
+      }
+      if (line.includes('TODO:') || line.includes('FIXME:')) {
+        localProblems.push({ line: index + 1, severity: 'info', message: '📝 [MAINTAIN] Ditemukan catatan tugas (TODO/FIXME) di baris ini.' });
       }
     });
 
@@ -906,11 +916,23 @@ export default function App() {
         resultText = await generateOpenRouterContent(openRouterModel, prompt, apiKey);
       }
 
-      const jsonMatch = resultText.match(/\[[\s\S]*\]/);
+      // Sanitize AI response: remove markdown code blocks and excess text
+      let cleanedText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
+      
       if (jsonMatch) {
-        const aiProblems = JSON.parse(jsonMatch[0]);
-        setProblems(prev => [...prev, ...aiProblems]);
-        appendTerminalOutput(`Scan complete: Found ${localProblems.length + aiProblems.length} potential issues.`);
+        try {
+          const aiProblems = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(aiProblems)) {
+            setProblems(prev => [...prev, ...aiProblems]);
+            appendTerminalOutput(`✅ Scan tuntas: Ditemukan ${localProblems.length} isu lokal & ${aiProblems.length} isu AI.`);
+          }
+        } catch (parseErr) {
+          console.error('[SCAN] JSON Parse Error:', parseErr);
+          appendTerminalOutput(`⚠️ Gagal memproses paket data AI (JSON Error).`);
+        }
+      } else {
+        appendTerminalOutput(`✅ Scan tuntas: ${localProblems.length} isu lokal ditemukan. AI tidak mendeteksi isu tambahan.`);
       }
     } catch (error) {
       console.error('AI Scan Error:', error);
