@@ -12,25 +12,52 @@ export async function generateSumopodContent(
   messages: { role: 'user' | 'assistant' | 'system', content: string }[],
   options: { temperature?: number, max_tokens?: number } = {}
 ) {
-  const response = await fetch('https://ai.sumopod.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: options.temperature ?? 0.7,
-      max_tokens: options.max_tokens ?? 16384, // Increased for 2026 models with massive context limit
-    }),
-  });
+  let modelsToTry = [model];
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `SumoPod API error: ${response.statusText}`);
+  // Logic Auto-Budget untuk mencari model terbaik yang paling hemat
+  if (model === 'auto-budget') {
+    modelsToTry = [
+      'seed-2-0-lite-free',
+      'glm-5-code',
+      'gemini/gemini-2.0-flash-lite',
+      'gpt-4o-mini',
+      'deepseek-v3-2',
+      'gpt-4.1-mini'
+    ];
   }
 
-  const data = await response.json();
-  return data.choices[0].message.content;
+  let lastError = null;
+
+  for (const currentModel of modelsToTry) {
+    try {
+      const response = await fetch('https://ai.sumopod.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: currentModel,
+          messages,
+          temperature: options.temperature ?? 0.7,
+          max_tokens: options.max_tokens ?? 16384,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `SumoPod API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error: any) {
+      console.warn(`[SumoPod Auto-Budget] Model ${currentModel} failed: ${error.message}`);
+      lastError = error;
+      
+      if (model !== "auto-budget") break;
+    }
+  }
+
+  throw new Error(lastError?.message || 'All SumoPod fallback models failed.');
 }

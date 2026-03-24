@@ -44,11 +44,16 @@ export async function generateOpenRouterContent(
   attachments: any[] = [],
   chatHistory: { role: string; content: string }[] = []
 ) {
-  let targetModel = model;
+  let modelsToTry = [model];
   
   if (model === "auto-free") {
-    const models = await fetchFreeModels();
-    targetModel = models[0].id;
+    try {
+      const models = await fetchFreeModels();
+      modelsToTry = models.map((m: any) => m.id);
+    } catch (e) {
+      // Fallback if API fails
+      modelsToTry = FREE_MODELS.slice(1).map(m => m.id);
+    }
   }
 
   const contentParts: any[] = [{ type: "text", text: prompt }];
@@ -62,9 +67,6 @@ export async function generateOpenRouterContent(
           url: file.data // base64 data URL
         }
       });
-    } else {
-      // For non-image files, we append content to the prompt in App.tsx
-      // but we could also handle it here if we wanted.
     }
   });
 
@@ -73,28 +75,47 @@ export async function generateOpenRouterContent(
     content: msg.content
   }));
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "Aura AI IDE",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: targetModel,
-      messages: [
-        ...formattedHistory,
-        { role: "user", content: contentParts }
-      ]
-    })
-  });
+  let lastError = null;
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error?.message || "OpenRouter API error");
+  // Auto-Switch / Fallback Logic
+  for (const currentModel of modelsToTry) {
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": window.location.origin,
+          "X-Title": "Aura AI IDE",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: currentModel,
+          messages: [
+            ...formattedHistory,
+            { role: "user", content: contentParts }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `OpenRouter API error (Status: ${response.status}) on model ${currentModel}`);
+      }
+
+      const data = await response.json();
+      if (!data.choices || data.choices.length === 0) {
+         throw new Error(`Empty response from model ${currentModel}`);
+      }
+      return data.choices[0].message.content;
+
+    } catch (error: any) {
+      console.warn(`[OpenRouter Auto-Switch] Model ${currentModel} failed: ${error.message}. Switching to next...`);
+      lastError = error;
+      
+      // Jika user memilih model spesifik (bukan auto-free), jangan lanjutkan ke fallback
+      if (model !== "auto-free") break;
+    }
   }
 
-  const data = await response.json();
-  return data.choices[0].message.content;
+  throw new Error(lastError?.message || "All fallback models failed. Please try again later.");
 }

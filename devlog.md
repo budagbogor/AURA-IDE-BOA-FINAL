@@ -2,12 +2,21 @@
 
 Log rekam jejak historis pengembangan fitur pada AURA AI IDE.
 
-## [2026-03-24] - Inisiasi Otonomi IDE AI
-**Aktivitas & Perubahan:**
-- Membuat dan menyepakati struktur pedoman proyek: `prd.md`, `devplan.md`, dan `devlog.md`.
-- Melakukan tinjauan terhadap repositori yang ada. Proyek ini dibangun memakai **React 19**, **Vite**, **Tailwind CSS 4**, dan **Tauri v2**.
-- Modul-modul layanan dasar seperti koneksi AI, *cloud integration* (Supabase), dan integrasi API sudah berjalan. Fitur kunci untuk mengelola *API Key* telah selesai.
-- Fokus diidentifikasi: Integrasi penuh pada *Command Terminal*, *Internal Browser Component*, dan *Smart Model Routing* (OpenRouter/SumoPod).
+## [2026-03-24] - Fase 1, 2, 3, & 4 Completed
+- **Smart Routing**: Berhasil mengimplementasikan auto-fallback OpenRouter & auto-budget SumoPod.
+- **Autonomous Terminal**: Menambahkan pendeteksi error terminal (exit code != 0) yang memicu auto-fix otonom via AI Composer.
+- **Internal Browser**: Implementasi Regex dinamis untuk menangkap port localhost dari stdout terminal.
+- **Autonomous Agent (Fase 4)**: 
+  - **Real-time Disk Sync**: Integrasi `@tauri-apps/plugin-fs` pada `onApplyCode`. File yang dibuat AI langsung tersimpan di disk asli secara otonom.
+  - **Planning Phase**: AI sekarang diwajibkan melakukan *Planning Phase* sebelum memberikan kode, meningkatkan akurasi arsitektur.
+  - **Multi-file Handling**: Mendukung pembuatan banyak file sekaligus (scaffolding) dan aksi penghapusan file (`delete`).
+- **UX**: Shortcut `Ctrl+F12` ditambahkan untuk toggle browser preview.
+- **Robustness**: Audit dependensi dan perbaikan TypeScript (`tsc --noEmit` clean).
+- **Final Polish (Fase 5)**:
+  - **Nested Explorer**: Sidebar kini mendukung struktur Folder Tree rekursif dengan ikon yang serasi.
+  - **Aura Premium Design**: Implementasi Glassmorphism v2, Custom Gradients, dan Glow effects di seluruh UI.
+  - **Global UX**: Scrollbar yang lebih halus, transisi animasi Framer Motion, dan tipografi JetBrains Mono.
+  - **Version**: AURA AI IDE v5.4.0 (Stable Release).
 
 **Status Kendala Saat Ini:**
 - Kecepatan penulisan lambat dan tidak semua file pendukung otomatis dibuat.

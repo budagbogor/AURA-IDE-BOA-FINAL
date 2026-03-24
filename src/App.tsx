@@ -78,8 +78,8 @@ import {
 import { getGeminiAI, generateGeminiStream } from './services/geminiService';
 import { generateOpenRouterContent, fetchFreeModels, type OpenRouterModel } from './services/openRouterService';
 import { generateBytezContent } from './services/bytezService';
-import { saveProjectToCloud, loadProjectFromCloud, listCloudProjects } from './services/supabaseService';
-import { fetchUserRepos, cloneRepository, pushProjectToGitHub } from './services/githubService';
+import { saveProjectToCloud, loadProjectFromCloud, listCloudProjects, testSupabaseConnection } from './services/supabaseService';
+import { fetchUserRepos, cloneRepository, pushProjectToGitHub, fetchUserProfile } from './services/githubService';
 import { generateSumopodContent } from './services/sumopodService';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -255,6 +255,11 @@ export default function App() {
   const [activeFileId, setActiveFileId] = useState<string>('');
   const [layoutMode, setLayoutMode] = useState<'classic' | 'modern'>('classic');
   const [projectName, setProjectName] = useState('AURA-PROJECT');
+  
+  // -- Auto-Fix Variables --
+  const [autoFixTrigger, setAutoFixTrigger] = useState(0);
+  const [autoFixMsg, setAutoFixMsg] = useState("");
+  
   const activeFile = files.find(f => f.id === activeFileId) || (files.length > 0 ? files[0] : null);
 
   useEffect(() => {
@@ -268,6 +273,9 @@ export default function App() {
       } else if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         handleSaveFile();
+      } else if (e.ctrlKey && e.key === 'F12') {
+        e.preventDefault();
+        setShowBrowser(prev => !prev);
       } else if (e.key === 'Escape') {
         setShowCommandPalette(false);
         setShowFileSearch(false);
@@ -373,7 +381,6 @@ export default function App() {
     appendTerminalOutput(`[GITHUB] Cloning repository ${repo.full_name}...`);
     
     try {
-      const { cloneRepository } = await import('./services/githubService');
       const clonedFiles = await cloneRepository(githubToken, repo.owner.login, repo.name);
       
       if (clonedFiles.length > 0) {
@@ -492,7 +499,6 @@ export default function App() {
     setTestingStatus(prev => ({ ...prev, supabase: 'loading' }));
     appendTerminalOutput(`[CLOUD] Mencoba menghubungkan ke Supabase: ${activeUrl}...`);
     try {
-      const { testSupabaseConnection } = await import('./services/supabaseService');
       const success = await testSupabaseConnection({ url: activeUrl, anonKey: activeKey });
       if (success) {
         setSupabaseConnected(true);
@@ -513,7 +519,6 @@ export default function App() {
     if (!githubToken) return;
     setTestingStatus(prev => ({ ...prev, github: 'loading' }));
     try {
-      const { fetchUserProfile } = await import('./services/githubService');
       const profile = await fetchUserProfile(githubToken);
       setGithubUser(profile);
       setGithubConnected(true);
@@ -533,7 +538,6 @@ export default function App() {
       if (provider === 'gemini') {
         const apiKey = geminiApiKey || process.env.GEMINI_API_KEY || '';
         if (!apiKey) throw new Error('API Key kosong');
-        const { getGeminiAI } = await import('./services/geminiService');
         const ai = getGeminiAI(apiKey);
         await ai.models.generateContent({
           model: selectedModel,
@@ -542,17 +546,14 @@ export default function App() {
       } else if (provider === 'openrouter') {
         const apiKey = openRouterApiKey || process.env.OPENROUTER_API_KEY || '';
         if (!apiKey) throw new Error('API Key kosong');
-        const { generateOpenRouterContent } = await import('./services/openRouterService');
         await generateOpenRouterContent(openRouterModel, 'ping', apiKey);
       } else if (provider === 'bytez') {
         const apiKey = bytezApiKey || '';
         if (!apiKey) throw new Error('API Key kosong');
-        const { generateBytezContent } = await import('./services/bytezService');
         await generateBytezContent(bytezModel, 'ping', apiKey, geminiApiKey);
       } else if (provider === 'sumopod') {
         const apiKey = sumopodApiKey || '';
         if (!apiKey) throw new Error('API Key kosong');
-        const { generateSumopodContent } = await import('./services/sumopodService');
         await generateSumopodContent(apiKey, sumopodModel, [{ role: 'user', content: 'ping' }]);
       }
       setTestingStatus(prev => ({ ...prev, [provider]: 'success' }));
@@ -749,7 +750,6 @@ export default function App() {
     if (githubToken) {
       const loadProfile = async () => {
         try {
-          const { fetchUserProfile, fetchUserRepos } = await import('./services/githubService');
           const profile = await fetchUserProfile(githubToken);
           setGithubUser(profile);
           setGithubConnected(true);
@@ -1236,8 +1236,13 @@ Integrations:
     
     if (hasPackageJson && !activeFileIsReact) {
       setBrowserSrcDoc(null);
-      setBrowserUrl('http://localhost:3000');
-      appendTerminalOutput('[PREVIEW] Menampilkan localhost:3000. Pastikan dev server sudah running.');
+      let defaultPort = '3000';
+      const pkgContent = files.find(f => f.name === 'package.json')?.content || '';
+      if (pkgContent.includes('vite')) defaultPort = '5173';
+      
+      const targetUrl = `http://localhost:${defaultPort}`;
+      setBrowserUrl(targetUrl);
+      appendTerminalOutput(`[PREVIEW] Menampilkan ${targetUrl} (Prediksi). Jika port berbeda, Aura akan mengupdate otomatis via Terminal.`);
     } else if (activeFileIsReact) {
       // REACT SANDBOX MODE (Babel-Standalone)
       setBrowserUrl('');
@@ -1502,19 +1507,52 @@ Integrations:
 
         if (!cmdInstance) throw new Error("Gagal menginisialisasi Command instance.");
 
+        let stdoutBuffer = '';
+        let stderrBuffer = '';
+
         // Attach listeners to the command instance BEFORE spawning (v2 API)
         cmdInstance.on('stdout', (data: string) => {
-          if (data) appendOutput(data);
+          if (data) {
+             appendOutput(data);
+             stdoutBuffer += data + '\n';
+
+             // --- DYNAMIC URL DETECTION (Fase 3) ---
+             // Mencari pola http://localhost:xxxx atau http://127.0.0.1:xxxx
+             const urlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::\]):\d+)/i;
+             const match = data.match(urlRegex);
+             if (match && match[0]) {
+               const detectedUrl = match[0].replace(/0\.0\.0\.0|\[::\]/, 'localhost');
+               appendTerminalOutput(`[AURA BROWSER] Terdeteksi Dev Server: ${detectedUrl}. Membuka Preview...`);
+               setBrowserUrl(detectedUrl);
+               setBrowserSrcDoc(null);
+               setShowBrowser(true);
+               setSidebarTab('browser');
+             }
+          }
         });
 
         cmdInstance.on('stderr', (data: string) => {
-          if (data) appendOutput(data);
+          if (data) {
+             appendOutput(data);
+             stderrBuffer += data + '\n';
+          }
         });
 
         cmdInstance.on('close', (data: { code: number | null }) => {
           activeProcessRef.current = null;
           if (data?.code !== 0 && data?.code !== null) {
             appendOutput(`Process exited with code ${data.code}`);
+            
+            // Auto-Fix Trigger Autonomous Loop
+            const errLog = stderrBuffer.trim() ? stderrBuffer : stdoutBuffer;
+            if (errLog) {
+               const shortLog = errLog.length > 2500 ? errLog.substring(errLog.length - 2500) : errLog;
+               appendOutput(`[AUTO-FIX] Menemukan error, mendelegasikan perbaikan pada Composer AI...`);
+               setAutoFixMsg(`[AUTO-FIX] Terminal command \`${val}\` gagal dengan status ${data.code}.\n\nError Log:\n\`\`\`\n${shortLog}\n\`\`\`\n\nTolong analisis sumber masalah di codebase, lakukan perbaikan kode secara otomatis menggunakan blok \`\`\`file:[path]\`\`\`, dan jalankan kembali perintah aslinya.`);
+               setAutoFixTrigger(c => c + 1);
+            }
+          } else {
+            appendOutput(`Process completed successfully.`);
           }
         });
 
@@ -1979,6 +2017,7 @@ Integrations:
         testAiConnection={testAiConnection}
         testGithubConnection={testGithubConnection}
         testError={testError}
+        nativeProjectPath={nativeProjectPath}
       />
 
       {/* Main Area */}
@@ -2144,9 +2183,17 @@ Integrations:
               projectTree={files.map(f => f.id).join('\n')}
               messages={composerMessages}
               setMessages={setComposerMessages}
+              autoFixTrigger={autoFixTrigger}
+              autoFixMessage={autoFixMsg}
               onExecuteCommand={executeCommand}
-              onApplyCode={(path, content) => {
+              onApplyCode={async (path, content, action) => {
+                const isDelete = action === 'delete';
+                
+                // 1. Update React State
                 setFiles(currentFiles => {
+                  if (isDelete) {
+                    return currentFiles.filter(f => f.id !== path && f.name !== path);
+                  }
                   const idx = currentFiles.findIndex(f => f.id === path || f.name === path);
                   if (idx !== -1) {
                     const existing = currentFiles[idx];
@@ -2162,7 +2209,37 @@ Integrations:
                     language: path.endsWith('.ts') || path.endsWith('.tsx') ? 'typescript' : 'javascript'
                   }];
                 });
-                if (activeFileId !== path) setActiveFileId(path);
+
+                // 2. Sync to Native Disk (Tauri)
+                if (nativeProjectPath && tauriFs) {
+                  try {
+                    // Normalize path
+                    let fullPath = path;
+                    if (!path.startsWith(nativeProjectPath) && !path.includes(':')) {
+                      fullPath = `${nativeProjectPath}/${path}`.replace(/\/+/g, '/').replace(/\\+/g, '\\');
+                    }
+                    
+                    if (isDelete) {
+                      try { await tauriFs.removeFile(fullPath); } catch (e) {}
+                    } else {
+                      // Create directory structure if needed
+                      const pathParts = fullPath.split(/[\\/]/);
+                      pathParts.pop(); 
+                      let currentDir = "";
+                      for (const part of pathParts) {
+                        if (!part) continue;
+                        currentDir += (currentDir ? "/" : "") + part;
+                        if (currentDir.length <= 3 && currentDir.includes(':')) continue; 
+                        try { await tauriFs.mkdir(currentDir, { recursive: true }); } catch (e) {}
+                      }
+                      await tauriFs.writeTextFile(fullPath, content);
+                    }
+                  } catch (err) {
+                    console.error('[AURA FS] Sync Error:', err);
+                  }
+                }
+
+                if (!isDelete && activeFileId !== path) setActiveFileId(path);
               }}
             />
           </div>

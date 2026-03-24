@@ -33,9 +33,6 @@ export default defineConfig(({mode}) => {
             if (id.includes('framer-motion')) {
               return 'animations';
             }
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-core';
-            }
             if (id.includes('node_modules')) {
               return 'vendor';
             }

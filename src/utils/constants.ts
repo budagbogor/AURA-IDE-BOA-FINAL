@@ -14,6 +14,7 @@ export const BYTEZ_MODELS = [
 ];
 
 export const SUMOPOD_MODELS = [
+  { id: 'auto-budget', name: 'Smart Auto-Budget (Gratis/Termurah, Kualitas Premium)' },
   // FREE MODELS
   { id: 'seed-2-0-lite-free', name: 'Seed 2.0 Lite (Free)' },
   { id: 'seed-2-0-mini-free', name: 'Seed 2.0 Mini (Free)' },

@@ -12,13 +12,15 @@ interface AiComposerPanelProps {
   model: string;
   files: FileItem[];
   activeFileId: string;
-  onApplyCode: (filePath: string, content: string) => void;
+  onApplyCode: (filePath: string, content: string, action?: 'create_or_modify' | 'delete') => void;
   onExecuteCommand?: (command: string) => void;
   appendTerminalOutput?: (msg: string) => void;
   projectTree?: string;
   onSuccess?: (stats: { fileCount: number; commands: string[] }) => void;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  autoFixTrigger?: number;
+  autoFixMessage?: string;
 }
 
 interface Message {
@@ -39,7 +41,9 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
   projectTree,
   onSuccess,
   messages,
-  setMessages
+  setMessages,
+  autoFixTrigger,
+  autoFixMessage
 }) => {
   const [input, setInput] = useState('');
   const [category, setCategory] = useState('Auto');
@@ -54,17 +58,23 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  useEffect(() => {
+    if (autoFixTrigger && autoFixTrigger > 0 && autoFixMessage && !isLoading) {
+      handleSend(autoFixMessage);
+    }
+  }, [autoFixTrigger]);
+
+  const handleSend = async (overrideMsg?: string) => {
+    const userMessage = typeof overrideMsg === 'string' ? overrideMsg : input;
+    if (!userMessage.trim() || isLoading) return;
     
     if (!apiKey) {
-      setMessages(prev => [...prev, { role: 'user', content: input }, { role: 'assistant', content: '⚠️ API Key belum diatur. Silakan atur di Settings terlebih dahulu.' }]);
-      setInput('');
+      setMessages(prev => [...prev, { role: 'user', content: userMessage }, { role: 'assistant', content: '⚠️ API Key belum diatur. Silakan atur di Settings terlebih dahulu.' }]);
+      if (typeof overrideMsg !== 'string') setInput('');
       return;
     }
 
-    const userMessage = input;
-    setInput('');
+    if (typeof overrideMsg !== 'string') setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
@@ -96,18 +106,15 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
         }
 
         // 2. Real-time Apply Code (Zero-Click) - Throttle 400ms
-        // This is heavy because it triggers global re-renders, so we do it less frequently.
         if (now - lastApplyUpdate > 400) {
-          const fileRegex = /\`\`\`(?:file|delete):([^\n]+)\n([\s\S]*?)(?:\`\`\`|$)/g;
+          const fileRegex = /\`\`\`(file|delete):([^\n]+)\n([\s\S]*?)(?:\`\`\`|$)/g;
           let match;
           while ((match = fileRegex.exec(fullResponse)) !== null) {
-            onApplyCode(match[1].trim(), match[2]);
+            const action = match[1] === 'delete' ? 'delete' : 'create_or_modify';
+            onApplyCode(match[2].trim(), match[3], action);
           }
           lastApplyUpdate = now;
         }
-
-        // 3. Command buffering - Do NOT execute during stream to avoid race conditions/hangs
-        // Commands will be executed ONLY after detection is stable or at the end.
       }
 
       // --- FINAL PASS (Safety & Consistency) ---
@@ -119,11 +126,12 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
       });
 
       // Final Apply for all files
-      const finalRegex = /\`\`\`(?:file|delete):([^\n]+)\n([\s\S]*?)(?:\`\`\`|$)/g;
+      const finalRegex = /\`\`\`(file|delete):([^\n]+)\n([\s\S]*?)(?:\`\`\`|$)/g;
       let finalMatch;
       let fileCount = 0;
       while ((finalMatch = finalRegex.exec(fullResponse)) !== null) {
-        onApplyCode(finalMatch[1].trim(), finalMatch[2]);
+        const action = finalMatch[1] === 'delete' ? 'delete' : 'create_or_modify';
+        onApplyCode(finalMatch[2].trim(), finalMatch[3], action);
         fileCount++;
       }
 
@@ -152,29 +160,32 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e]">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+    <div className="flex flex-col h-full bg-[#1e1e1e] bg-aura-gradient overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar pb-10">
         {messages.map((msg, idx) => (
           <div key={idx} className={cn("flex flex-col gap-2", msg.role === 'user' ? "items-end" : "items-start")}>
-            <div className="flex items-center gap-2 opacity-50 px-2">
+            <div className={cn(
+              "flex items-center gap-2 opacity-60 px-2",
+              msg.role === 'user' ? "flex-row-reverse" : "flex-row"
+            )}>
               {msg.role === 'user' ? (
                 <>
-                  <span className="text-[10px] font-bold uppercase tracking-tighter">You</span>
-                  <div className="w-5 h-5 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400"><User size={12} /></div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-blue-400">You</span>
+                  <div className="w-6 h-6 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]"><User size={12} /></div>
                 </>
               ) : (
                 <>
-                  <div className="w-5 h-5 rounded-lg bg-purple-600/20 flex items-center justify-center text-purple-400"><Bot size={12} /></div>
-                  <span className="text-[10px] font-bold uppercase tracking-tighter text-purple-400 italic">Composer</span>
+                  <div className="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)]"><Bot size={12} /></div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 italic">Aura AI</span>
                 </>
               )}
             </div>
             
             <div className={cn(
-              "w-[95%] p-3 rounded-2xl text-[13px] leading-relaxed shadow-lg max-w-full",
+              "w-[95%] p-4 rounded-2xl text-[13px] leading-relaxed shadow-2xl max-w-full glass-card transition-all hover:border-white/20",
               msg.role === 'user' 
-                ? "bg-blue-600/20 border border-blue-500/30 text-blue-100 rounded-tr-none self-end" 
-                : "bg-[#252526] border border-white/10 text-gray-200 rounded-tl-none"
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-50 rounded-tr-none self-end" 
+                : "bg-white/5 border-white/10 text-gray-200 rounded-tl-none"
             )}>
               <div className="prose prose-invert prose-sm max-w-none">
                 <Markdown
@@ -282,7 +293,7 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                 </select>
               </div>
               <button 
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={!input.trim() || isLoading}
                 className={cn(
                   "p-2.5 rounded-xl transition-all shadow-lg",

@@ -99,8 +99,11 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
             </div>
 
             {/* Terminal Output */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-              <div className="text-emerald-400 font-bold text-[11px] opacity-70 mb-2">Aura Terminal v5.0 — PowerShell Engine</div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1 relative bg-aura-glow">
+              <div className="text-blue-400 font-black text-[10px] tracking-[0.2em] uppercase mb-3 text-glow-blue opacity-80 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                Aura Terminal Engine v5.0
+              </div>
               {currentSession?.output?.map((line: string, i: number) => (
                 <div key={i} className="flex gap-2">
                   {line.includes(' $ ') ? (

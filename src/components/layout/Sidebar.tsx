@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/cn';
-import { getFileIcon } from '@/utils/icons';
+import { getFileIcon, getFolderIcon } from '@/utils/icons';
 import Markdown from 'react-markdown';
 import { AuraLogo } from '@/components/layout/AuraLogo';
 import { 
@@ -9,7 +9,8 @@ import {
   Settings, ChevronRight, X, RotateCcw, Monitor, Smartphone, Layout, 
   Eye, FolderOpen, Download, Terminal, Plus, CloudUpload, CloudDownload,
   FolderTree, RefreshCw, Bot, User, ImageIcon, FileIcon, Paperclip, Send,
-  Cpu, ExternalLink, CheckCircle, AlertTriangle, Play, ChevronDown, Database
+  Cpu, ExternalLink, CheckCircle, AlertTriangle, Play, ChevronDown, Database,
+  ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 import { FileItem, ChatMessage, CodeProblem, McpServer, TerminalSession } from '@/types';
 import { 
@@ -144,7 +145,122 @@ interface SidebarProps {
   testGithubConnection: () => Promise<void>;
   resetAllConnections: () => void;
   testError: Record<string, string>;
+  nativeProjectPath: string | null;
 }
+
+type FileTreeItem = {
+  id: string;
+  name: string;
+  kind: 'file' | 'folder';
+  children?: FileTreeItem[];
+  file?: FileItem;
+};
+
+const buildFileTree = (files: FileItem[], rootPath: string | null): FileTreeItem[] => {
+  const root: FileTreeItem[] = [];
+  
+  files.forEach(file => {
+    let relPath = file.id;
+    if (rootPath && file.id.startsWith(rootPath)) {
+      relPath = file.id.substring(rootPath.length).replace(/^[\\/]/, '');
+    }
+    
+    const parts = relPath.split(/[\\/]/);
+    let currentLevel = root;
+    
+    parts.forEach((part, index) => {
+      if (!part) return;
+      const isLast = index === parts.length - 1;
+      let existing = currentLevel.find(item => item.name === part);
+      
+      if (existing) {
+        if (!isLast && existing.kind === 'folder') {
+          currentLevel = existing.children!;
+        }
+      } else {
+        const newItem: FileTreeItem = {
+          id: isLast ? file.id : parts.slice(0, index + 1).join('/'),
+          name: part,
+          kind: isLast ? 'file' : 'folder',
+          children: isLast ? undefined : [],
+          file: isLast ? file : undefined
+        };
+        currentLevel.push(newItem);
+        if (!isLast) {
+          currentLevel = newItem.children!;
+        }
+      }
+    });
+  });
+  
+  const sortTree = (items: FileTreeItem[]) => {
+    items.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    items.forEach(item => {
+      if (item.children) sortTree(item.children);
+    });
+  };
+  
+  sortTree(root);
+  return root;
+};
+
+const TreeItem: React.FC<{
+  item: FileTreeItem;
+  level: number;
+  activeFileId: string;
+  setActiveFileId: (id: string) => void;
+  handleContextMenu: (e: React.MouseEvent, id: string) => void;
+}> = ({ item, level, activeFileId, setActiveFileId, handleContextMenu }) => {
+  const [isOpen, setIsOpen] = useState(true);
+  const isSelected = activeFileId === item.id;
+
+  if (item.kind === 'folder') {
+    return (
+      <div className="flex flex-col">
+        <div 
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-white/5 cursor-pointer group transition-colors"
+          style={{ paddingLeft: `${level * 12 + 8}px` }}
+        >
+          <span className={cn("transition-transform duration-200", isOpen ? "rotate-90" : "")}>
+            <ChevronRightIcon size={12} className="text-gray-500" />
+          </span>
+          {getFolderIcon(isOpen)}
+          <span className="text-[12px] text-gray-400 font-medium truncate">{item.name}</span>
+        </div>
+        {isOpen && item.children?.map(child => (
+          <TreeItem 
+            key={child.id} 
+            item={child} 
+            level={level + 1} 
+            activeFileId={activeFileId} 
+            setActiveFileId={setActiveFileId}
+            handleContextMenu={handleContextMenu}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      onClick={() => setActiveFileId(item.id)}
+      onContextMenu={(e) => handleContextMenu(e, item.id)}
+      className={cn(
+        "flex items-center gap-2 px-2 py-0.5 cursor-pointer text-[13px] transition-colors group relative border-l-2 border-transparent",
+        isSelected ? "bg-blue-600/10 text-blue-400 border-blue-500" : "hover:bg-white/5 text-[#cccccc]"
+      )}
+      style={{ paddingLeft: `${level * 12 + 20}px` }}
+    >
+      {getFileIcon(item.name)}
+      <span className="truncate">{item.name}</span>
+      {isSelected && <div className="absolute right-2 w-1 h-1 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
+    </div>
+  );
+};
 
 export const Sidebar: React.FC<SidebarProps> = ({
   layoutMode, zenMode, sidebarTab, setSidebarTab,
@@ -181,7 +297,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   newMcpUrl, setNewMcpUrl, newMcpEnvStr, setNewMcpEnvStr,
   showMcpLogsFor, setShowMcpLogsFor, activeMcpLogs, setActiveMcpLogs,
   testSupabase, testingStatus, testAiConnection,
-  testGithubConnection, testError
+  testGithubConnection, testError,
+  nativeProjectPath
 }) => {
 
   const ConnectionStatus: React.FC<{ 
@@ -226,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Activity Bar */}
       <div className={cn(
-        "w-14 h-full bg-[#333333] flex flex-col items-center py-4 gap-4 z-50 glass-dark shrink-0",
+        "w-14 h-full bg-[#181818] flex flex-col items-center py-4 gap-4 z-50 glass-dark shrink-0",
         layoutMode === 'modern' ? "border-l border-white/5" : "border-r border-white/5"
       )}>
         <div 
@@ -416,21 +533,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <ChevronDown size={16} />
                   <span className="text-[13px] font-bold">AURA-PROJECT</span>
                 </div>
-                <div className="pl-4">
-                  {files.map(file => (
-                    <div 
-                      key={file.id}
-                      onClick={() => setActiveFileId(file.id)}
-                      onContextMenu={(e) => handleContextMenu(e, file.id)}
-                      className={cn(
-                        "flex items-center gap-2 px-2 py-1 cursor-pointer text-[13px] transition-colors group relative",
-                        activeFileId === file.id ? "bg-[#37373d] text-white" : "hover:bg-[#2a2d2e] text-[#cccccc]"
-                      )}
-                    >
-                      {getFileIcon(file.name)}
-                      <span className="truncate">{file.name}</span>
-                      {activeFileId === file.id && <div className="absolute right-2 w-1 h-1 rounded-full bg-blue-500" />}
-                    </div>
+                <div className="flex flex-col mt-1">
+                  {buildFileTree(files, nativeProjectPath).map(item => (
+                    <TreeItem 
+                      key={item.id} 
+                      item={item} 
+                      level={0} 
+                      activeFileId={activeFileId} 
+                      setActiveFileId={setActiveFileId}
+                      handleContextMenu={handleContextMenu}
+                    />
                   ))}
                 </div>
               </motion.div>
@@ -492,8 +604,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   messages={composerMessages}
                   setMessages={setComposerMessages}
                   onExecuteCommand={executeCommand}
-                  onApplyCode={(path, content) => {
+                  onApplyCode={(path, content, action) => {
+                    const isDelete = action === 'delete';
                     setFiles(currentFiles => {
+                      if (isDelete) {
+                        return currentFiles.filter(f => f.id !== path && f.name !== path);
+                      }
                       const idx = currentFiles.findIndex(f => f.id === path || f.name === path);
                       if (idx !== -1) {
                         const existing = currentFiles[idx];
@@ -510,7 +626,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         lastModified: Date.now()
                       }];
                     });
-                    if (activeFileId !== path) setActiveFileId(path);
+                    if (!isDelete && activeFileId !== path) setActiveFileId(path);
                   }}
                 />
               </motion.div>
