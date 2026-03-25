@@ -212,9 +212,6 @@ export default function App() {
       } else if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         handleSaveFile();
-      } else if (e.ctrlKey && e.key === 'F12') {
-        e.preventDefault();
-        setShowBrowser(prev => !prev);
       } else if (e.ctrlKey && e.key === 'b') {
         e.preventDefault();
         setSidebarWidth(prev => prev === 0 ? 300 : 0);
@@ -233,7 +230,7 @@ export default function App() {
   const [showBottomPanel, setShowBottomPanel] = useState(true);
   const [showAiPanel, setShowAiPanel] = useState(true);
   const [bottomTab, setBottomTab] = useState<'terminal' | 'problems' | 'output' | 'debug'>('terminal');
-  const [sidebarTab, setSidebarTab] = useState<'files' | 'search' | 'git' | 'ai' | 'github' | 'settings' | 'browser' | 'database'>('files');
+  const [sidebarTab, setSidebarTab] = useState<'files' | 'search' | 'git' | 'ai' | 'github' | 'settings' | 'database'>('files');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: 'Welcome to **Aura AI IDE**. I am your coding assistant. How can I help you today?' }
   ]);
@@ -566,9 +563,6 @@ export default function App() {
   const [context7Mode, setContext7Mode] = useState(false);
   const [systemInstruction, setSystemInstruction] = useState<string>('You are an expert AI coding assistant.');
   const [selectedSkill, setSelectedSkill] = useState<string>('Default');
-  const [browserUrl, setBrowserUrl] = useState<string>('https://www.google.com/search?igu=1');
-  const [browserSrcDoc, setBrowserSrcDoc] = useState<string | null>(null);
-  const [showBrowser, setShowBrowser] = useState(false);
   const [zenMode, setZenMode] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -617,10 +611,8 @@ export default function App() {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [aiPanelWidth, setAiPanelWidth] = useState(450);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(250);
-  const [browserWidth, setBrowserWidth] = useState(window.innerWidth / 2);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [isResizingBottom, setIsResizingBottom] = useState(false);
-  const [isResizingBrowser, setIsResizingBrowser] = useState(false);
   const [isResizingAiPanel, setIsResizingAiPanel] = useState(false);
 
   useEffect(() => {
@@ -636,18 +628,10 @@ export default function App() {
           setSidebarWidth(newWidth);
         }
       }
-
       if (isResizingBottom) {
-        const newHeight = window.innerHeight - e.clientY - 44; // 24 (Status Bar) + 20 (Copyright)
+        const newHeight = window.innerHeight - e.clientY - 44; 
         if (newHeight > 60 && newHeight < window.innerHeight - 100) {
           setBottomPanelHeight(newHeight);
-        }
-      }
-
-      if (isResizingBrowser) {
-        const newWidth = window.innerWidth - e.clientX;
-        if (newWidth > 200 && newWidth < window.innerWidth - 400) {
-          setBrowserWidth(newWidth);
         }
       }
 
@@ -667,12 +651,11 @@ export default function App() {
     const handleMouseUp = () => {
       setIsResizingSidebar(false);
       setIsResizingBottom(false);
-      setIsResizingBrowser(false);
       setIsResizingAiPanel(false);
       document.body.style.cursor = 'default';
     };
 
-    if (isResizingSidebar || isResizingBottom || isResizingBrowser || isResizingAiPanel) {
+    if (isResizingSidebar || isResizingBottom || isResizingAiPanel) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -681,7 +664,7 @@ export default function App() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizingSidebar, isResizingBottom, isResizingBrowser, isResizingAiPanel, layoutMode]);
+  }, [isResizingSidebar, isResizingBottom, isResizingAiPanel, layoutMode]);
 
   useEffect(() => {
     localStorage.setItem('aura_gemini_key', geminiApiKey);
@@ -787,12 +770,10 @@ export default function App() {
       setShowAiPanel(true);
       setShowBottomPanel(true);
       setSidebarTab('files');
-      setShowBrowser(false);
     } else if (preset === 'zen') {
       setZenMode(true);
       setShowAiPanel(false);
       setShowBottomPanel(false);
-      setShowBrowser(false);
     }
     const displayPreset = preset === 'default' ? 'DEFAULT LOOK' : 'ZEN ONLY';
     appendTerminalOutput(`[SYSTEM] Layout switched to ${displayPreset} mode.`);
@@ -1215,116 +1196,20 @@ Integrations:
     const packageJson = files.find(f => f.name === 'package.json');
     if (packageJson) {
       appendTerminalOutput('[AURA MAGIC] Terdeteksi package.json. Menyiapkan environment...');
-      
-      // Auto-run install and start if it looks like a new project or significant change
       if (stats.fileCount > 3 || stats.commands.some(c => c.includes('create-react-app') || c.includes('vite'))) {
         executeCommand('npm install && npm start');
         appendTerminalOutput('[AURA MAGIC] Menjalankan npm install & start di latar belakang...');
-        
-        // Wait for dev server to potentially start, then switch to browser
         setTimeout(() => {
-          setSidebarTab('browser');
-          handleAutoPreview(true);
+          appendTerminalOutput('[AURA MAGIC] Lingkungan siap. Silakan buka localhost di browser Anda.');
         }, 5000);
-      } else {
-        handleAutoPreview(true);
       }
     } else {
-      // Static/React Sandbox
-      handleAutoPreview(true);
-      setSidebarTab('browser');
+      appendTerminalOutput('[AURA MAGIC] Perubahan diterapkan.');
     }
   };
 
   const handleAutoPreview = (force: boolean = false) => {
-    if (!force) setShowBrowser(true);
-    else {
-      setShowBrowser(true);
-      setSidebarTab('browser');
-    }
-    const hasPackageJson = files.some(f => f.name === 'package.json');
-    const activeFileIsReact = activeFile?.name.endsWith('.tsx') || activeFile?.name.endsWith('.jsx');
-    
-    if (hasPackageJson && !activeFileIsReact) {
-      setBrowserSrcDoc(null);
-      let defaultPort = '3000';
-      const pkgContent = files.find(f => f.name === 'package.json')?.content || '';
-      if (pkgContent.includes('vite')) defaultPort = '5173';
-      
-      const targetUrl = `http://localhost:${defaultPort}`;
-      setBrowserUrl(targetUrl);
-      appendTerminalOutput(`[PREVIEW] Menampilkan ${targetUrl} (Prediksi). Jika port berbeda, Aura akan mengupdate otomatis via Terminal.`);
-    } else if (activeFileIsReact) {
-      // REACT SANDBOX MODE (Babel-Standalone)
-      setBrowserUrl('');
-      const code = activeFile?.content || '';
-      
-      const srcDoc = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8" />
-          <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-          <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-          <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            body { background: #0f172a; color: white; min-height: 100vh; margin: 0; font-family: sans-serif; }
-            #root { height: 100%; width: 100%; }
-          </style>
-        </head>
-        <body>
-          <div id="root"></div>
-          <script type="text/babel" data-presets="react,typescript">
-            ${code.replace(/export\s+default\s+function/g, 'function App')}
-            ${code.includes('export default function') ? '' : (code.includes('function App') ? '' : 'function App() { return <div>Mohon gunakan "export default function App" untuk pratinjau.</div>; }')}
-            
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<App />);
-          </script>
-        </body>
-        </html>
-      `;
-      setBrowserSrcDoc(srcDoc);
-      appendTerminalOutput(`[PREVIEW] Generating React Sandbox for ${activeFile?.name}...`);
-    } else {
-      const htmlFile = files.find(f => f.name.endsWith('index.html') || f.name.endsWith('.html'));
-      if (htmlFile) {
-        let htmlContent = htmlFile.content;
-        
-        // Inject Tailwind if missing
-        if (!htmlContent.includes('cdn.tailwindcss.com')) {
-          htmlContent = htmlContent.replace('</head>', '<script src="https://cdn.tailwindcss.com"></script></head>');
-        }
-
-        // Inject CSS & JS ke dalam HTML
-        files.forEach(f => {
-          if (f.name.endsWith('.css')) {
-            const cssRegex = new RegExp(`<link[^>]*href=["']\\.?/?${f.name}["'][^>]*>`, 'g');
-            if (cssRegex.test(htmlContent)) {
-              htmlContent = htmlContent.replace(cssRegex, `<style>${f.content}</style>`);
-            } else {
-              htmlContent = htmlContent.replace('</head>', `<style>${f.content}</style></head>`);
-            }
-          }
-          if (f.name.endsWith('.js')) {
-            const jsRegex = new RegExp(`<script[^>]*src=["']\\.?/?${f.name}["'][^>]*>.*?</script>`, 'g');
-            if (jsRegex.test(htmlContent)) {
-              htmlContent = htmlContent.replace(jsRegex, `<script>${f.content}</script>`);
-            } else {
-               htmlContent = htmlContent.replace('</body>', `<script>${f.content}</script></body>`);
-            }
-          }
-        });
-        
-        setBrowserUrl('');
-        setBrowserSrcDoc(htmlContent);
-        appendTerminalOutput(`[PREVIEW] Menampilkan ${htmlFile.name} dengan Tailwind CDN.`);
-      } else {
-        appendTerminalOutput('[PREVIEW] Gagal: Tidak menemukan file yang bisa dipratinjau (.tsx, .jsx, atau .html).');
-        alert('Harap buat file index.html atau gunakan file React (.tsx) untuk Live Preview.');
-      }
-    }
+    appendTerminalOutput('[AURA] Preview internal telah dihapus. Silakan gunakan browser sistem (Chrome/Edge/dll) untuk melihat perubahan pada localhost.');
   };
 
   const exportProject = async () => {
@@ -1494,10 +1379,7 @@ Integrations:
           if (match && match[0]) {
              const detectedUrl = match[0].replace(/0\.0\.0\.0|\[::\]|0\.0\.0\.1/, 'localhost');
              appendTerminalOutput(`[AURA BROWSER] 🚀 Server Aktif: ${detectedUrl}`);
-             setBrowserUrl(detectedUrl);
-             setBrowserSrcDoc(null);
-             setShowBrowser(true);
-             setSidebarTab('browser');
+             appendTerminalOutput(`[AURA BROWSER] Klik URL di atas untuk membuka di browser sistem.`);
           }
         };
 
@@ -2011,11 +1893,6 @@ Integrations:
         repoSearchInput={repoSearchInput}
         setRepoSearchInput={setRepoSearchInput}
         handleCloneRepo={handleCloneRepo}
-        browserUrl={browserUrl}
-        setBrowserUrl={setBrowserUrl}
-        browserSrcDoc={browserSrcDoc}
-        setBrowserSrcDoc={setBrowserSrcDoc}
-        setShowBrowser={setShowBrowser}
         isTauri={isTauri}
         TauriCommand={TauriCommand}
         openFolderNative={openFolderNative}
@@ -2135,17 +2012,6 @@ Integrations:
             >
               <X size={14} />
             </button>
-            <button 
-              onClick={() => setShowBrowser(!showBrowser)}
-              className={cn(
-                "p-1.5 rounded transition-colors flex items-center gap-1.5 text-xs font-medium",
-                showBrowser ? "bg-blue-600 text-white" : "text-[#858585] hover:text-white hover:bg-white/5"
-              )}
-              title="Toggle Internal Browser"
-            >
-              <Globe size={14} />
-              <span>Browser</span>
-            </button>
           </div>
         </div>
 
@@ -2156,8 +2022,6 @@ Integrations:
             setFiles={setFiles}
             activeFileId={activeFileId}
             setActiveFileId={setActiveFileId}
-            showBrowser={showBrowser}
-            setShowBrowser={setShowBrowser}
             projectName={projectName}
             nativeProjectPath={nativeProjectPath}
             activeFile={activeFile}
@@ -2168,12 +2032,6 @@ Integrations:
             setSidebarTab={setSidebarTab}
             createNewFile={createNewFile}
             handleCloneRepo={handleCloneRepo}
-            browserWidth={browserWidth}
-            setIsResizingBrowser={setIsResizingBrowser}
-            browserUrl={browserUrl}
-            setBrowserUrl={setBrowserUrl}
-            browserSrcDoc={browserSrcDoc}
-            setBrowserSrcDoc={setBrowserSrcDoc}
           />
         </div>
       </div>

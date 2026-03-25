@@ -22,8 +22,8 @@ import { AiComposerPanel } from '../AiComposer/AiComposerPanel';
 interface SidebarProps {
   layoutMode: 'classic' | 'modern';
   zenMode: boolean;
-  sidebarTab: 'files' | 'search' | 'git' | 'ai' | 'github' | 'settings' | 'browser' | 'database';
-  setSidebarTab: (tab: 'files' | 'search' | 'git' | 'ai' | 'github' | 'settings' | 'browser' | 'database') => void;
+  sidebarTab: 'files' | 'search' | 'git' | 'ai' | 'github' | 'settings' | 'database';
+  setSidebarTab: (tab: 'files' | 'search' | 'git' | 'ai' | 'github' | 'settings' | 'database') => void;
   sidebarWidth: number;
   setSidebarWidth: (width: number) => void;
   isResizingSidebar: boolean;
@@ -61,11 +61,6 @@ interface SidebarProps {
   repoSearchInput: string;
   setRepoSearchInput: (input: string) => void;
   handleCloneRepo: (repo: any) => void;
-  browserUrl: string;
-  setBrowserUrl: (url: string) => void;
-  browserSrcDoc: string | null;
-  setBrowserSrcDoc: (doc: string | null) => void;
-  setShowBrowser: (show: boolean) => void;
   isTauri: boolean;
   TauriCommand: any;
   openFolderNative: () => void;
@@ -264,8 +259,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   fileInputRef, chatEndRef, githubUser, githubConnected, setGithubConnected,
   githubToken, setGithubToken, githubRepos, setGithubRepos,
   isFetchingRepos, setIsFetchingRepos, repoSearchInput, setRepoSearchInput,
-  handleCloneRepo, browserUrl, setBrowserUrl, browserSrcDoc, setBrowserSrcDoc,
-  setShowBrowser, isTauri, TauriCommand, openFolderNative,
+  handleCloneRepo, 
+  isTauri, TauriCommand, openFolderNative,
   createNewFile, openFolder, closeFolder, exportProject,
   autoPreview, onAiSuccess,
   handleGithubPush, executeCommand,
@@ -379,14 +374,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {sidebarTab === 'github' && <motion.div layoutId="activeTab" className="absolute left-[-12px] w-1 h-8 bg-blue-500 rounded-r-full" />}
         </div>
         <div 
-          onClick={() => setSidebarTab('browser')}
-          title="Internal Browser"
-          className={cn("p-2 cursor-pointer transition-all duration-200 rounded-xl group relative", sidebarTab === 'browser' ? "text-white bg-blue-600/20 shadow-lg shadow-blue-500/10" : "text-[#858585] hover:text-white hover:bg-white/5")}
-        >
-          <Globe size={20} className={cn("transition-transform duration-200", sidebarTab === 'browser' && "scale-110")} />
-          {sidebarTab === 'browser' && <motion.div layoutId="activeTab" className="absolute left-[-12px] w-1 h-8 bg-blue-500 rounded-r-full" />}
-        </div>
-        <div 
           onClick={() => setSidebarTab('database')}
           title="Database Explorer"
           className={cn("p-2 cursor-pointer transition-all duration-200 rounded-xl group relative", sidebarTab === 'database' ? "text-white bg-blue-600/20 shadow-lg shadow-blue-500/10" : "text-[#858585] hover:text-white hover:bg-white/5")}
@@ -447,7 +434,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {sidebarTab === 'ai' && 'Aura AI Chat'}
             {sidebarTab === 'github' && 'GitHub'}
             {sidebarTab === 'settings' && 'Settings'}
-            {sidebarTab === 'browser' && 'Browser'}
             {sidebarTab === 'database' && 'Database Explorer'}
           </span>
           <div className="flex items-center gap-2">
@@ -721,54 +707,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </motion.div>
             )}
 
-            {/* BROWSER TAB */}
-            {sidebarTab === 'browser' && (
-              <motion.div 
-                key="browser"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="flex flex-col p-4 gap-4"
-              >
-                <div className="space-y-4">
-                  <div className="p-4 bg-blue-600/10 border border-blue-500/20 rounded-2xl space-y-2">
-                    <h4 className="text-[12px] font-bold text-blue-400 flex items-center gap-2 italic">
-                      <Monitor size={14} /> Internal Preview Mode
-                    </h4>
-                    <p className="text-[11px] text-gray-400 leading-relaxed">
-                      Aura's internal browser allows you to preview your HTML/JS applications side-by-side with the code.
-                    </p>
-                    <button 
-                      onClick={() => setShowBrowser(true)}
-                      className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Layout size={14} /> Open Preview Panel
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase px-2">Global URL Navigation</label>
-                    <div className="relative group">
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-500" size={14} />
-                      <input 
-                        type="text" 
-                        placeholder="https://google.com"
-                        value={browserUrl}
-                        onChange={e => setBrowserUrl(e.target.value)}
-                        className="w-full bg-[#3c3c3c] border border-white/5 rounded-xl py-2 pl-9 pr-3 text-[12px] focus:outline-none focus:border-blue-500/50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => setBrowserUrl('https://www.google.com/search?igu=1')} className="p-2 bg-white/5 rounded-lg text-[10px] hover:bg-white/10 text-gray-400">Google</button>
-                    <button onClick={() => setBrowserUrl('https://github.com')} className="p-2 bg-white/5 rounded-lg text-[10px] hover:bg-white/10 text-gray-400">GitHub</button>
-                    <button onClick={() => setBrowserUrl('https://stackblitz.com')} className="p-2 bg-white/5 rounded-lg text-[10px] hover:bg-white/10 text-gray-400">StackBlitz</button>
-                    <button onClick={() => setBrowserUrl('https://tailwindcss.com')} className="p-2 bg-white/5 rounded-lg text-[10px] hover:bg-white/10 text-gray-400">Tailwind Docs</button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
 
             {/* DATABASE TAB */}
             {sidebarTab === 'database' && (
