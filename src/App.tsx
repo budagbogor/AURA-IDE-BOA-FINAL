@@ -1455,7 +1455,12 @@ Integrations:
           if (match && match[0]) {
              const detectedUrl = match[0].replace(/0\.0\.0\.0|\[::\]|0\.0\.0\.1/, 'localhost');
              appendTerminalOutput(`[AURA BROWSER] 🚀 Server Aktif: ${detectedUrl}`);
-             appendTerminalOutput(`[AURA BROWSER] Klik URL di atas untuk membuka di browser sistem.`);
+             appendTerminalOutput(`[AURA BROWSER] Membuka preview di browser sistem...`);
+             
+             // Auto-trigger system browser
+             if (isTauri && TauriCommand) {
+                TauriCommand.create('cmd', ['/C', 'start', detectedUrl]).execute().catch(() => {});
+             }
           }
         };
 

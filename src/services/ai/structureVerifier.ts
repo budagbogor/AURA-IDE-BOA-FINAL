@@ -9,13 +9,13 @@ export interface ProjectBlueprint {
 export const PROJECT_BLUEPRINTS: ProjectBlueprint[] = [
   {
     name: 'Vite/React',
-    requiredFiles: ['package.json', 'index.html', 'src/main.tsx', 'vite.config.ts', 'src/styles/theme.css'],
-    description: 'Modern React project with Elite Design System'
+    requiredFiles: ['package.json', 'index.html', 'src/main.tsx', 'vite.config.ts', 'src/styles/theme.css', 'vercel.json'],
+    description: 'Modern React project with Elite Design & Vercel Ready'
   },
   {
     name: 'Next.js',
-    requiredFiles: ['package.json', 'app/page.tsx', 'next.config.mjs', 'app/globals.css'],
-    description: 'Next.js project with Premium Layout'
+    requiredFiles: ['package.json', 'app/page.tsx', 'next.config.mjs', 'app/globals.css', 'vercel.json'],
+    description: 'Next.js project with Premium Layout & Vercel Ready'
   },
   {
     name: 'Vanilla HTML',

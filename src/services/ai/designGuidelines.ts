@@ -41,5 +41,14 @@ Selalu sertakan file \`index.css\` atau \`theme.css\` yang berisi:
 
 ## 6. PROJECT SCAFFOLDING GUIDELINES
 - Jika project React/Vite: Sertakan \`framer-motion\` jika memungkinkan untuk animasi tingkat tinggi.
-- Selalu gunakan font modern (Inter, Outfit, atau Poppins) melalui Google Fonts link di \`index.html\`.
+## 7. DEPLOYMENT & VERCEL READINESS
+Pastikan project siap deploy ke Vercel:
+- **vercel.json**: Selalu sertakan file ini untuk SPA (React/Next.js) dengan konfigurasi rewrites ke index.html.
+- **Build Audit**: Pastikan \`npm run build\` tersedia di \`package.json\` dan menghasilkan folder \`dist\` atau \`.next\`.
+- **Manifest**: [NEW] Gunakan file \`vercel.json\` standar:
+\`\`\`json
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+\`\`\`
 `;
