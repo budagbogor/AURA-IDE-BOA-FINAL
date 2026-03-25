@@ -29,19 +29,23 @@ export class TauriStdioTransport implements Transport {
 
   async start(): Promise<void> {
     const isWindows = navigator.platform.toLowerCase().includes('win');
-    let cmdArgs = [this.commandStr];
-    let cmdName = 'cmd';
-
-    if (isWindows) {
-      cmdArgs = ['/c', this.commandStr];
-    } else {
-      cmdName = 'sh';
-      cmdArgs = ['-c', this.commandStr];
+    let cmdName = isWindows ? 'cmd' : 'sh';
+    
+    // --- UNIVERSAL NPX RESOLUTION (v1.6.0) ---
+    let finalCommand = this.commandStr;
+    if (isWindows && this.commandStr.startsWith('npx')) {
+      try {
+        const checkCmd = Command.create('cmd', ['/c', 'where', 'npx']);
+        const out = await checkCmd.execute();
+        if (out.code === 0 && out.stdout) {
+           const fullPath = out.stdout.split('\r\n')[0].trim();
+           finalCommand = `"${fullPath}" ${this.commandStr.substring(3).trim()}`;
+           this.onlog?.(`[MCP INFO] Resolved npx to: ${fullPath}`);
+        }
+      } catch (e) {}
     }
 
-    // Command.create requires the capability defined in your default.json
-    // We expect 'cmd' and 'sh' to be allowed
-    const command = Command.create(cmdName, cmdArgs, { env: this.env });
+    const command = Command.create(cmdName, [isWindows ? '/c' : '-c', finalCommand], { env: this.env });
     
     command.on('close', () => {
       this.onlog?.(`[Process Closed]`);

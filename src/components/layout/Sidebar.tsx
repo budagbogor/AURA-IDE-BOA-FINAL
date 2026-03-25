@@ -449,18 +449,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <FolderOpen size={14} />
                 </button>
                 
-                <div className="w-[1px] h-3.5 bg-white/10 my-auto mx-0.5" />
-                
-                <div className="w-[1px] h-3.5 bg-white/10 my-auto mx-0.5" />
-                
-                <button onClick={() => autoPreview()} title="Live Preview Auto" className="hover:text-green-400 transition-colors">
-                  <Play size={14} />
-                </button>
                 <button onClick={exportProject} title="Export Project (ZIP)" className="hover:text-white transition-colors">
                   <Download size={14} />
                 </button>
-
-                <div className="w-[1px] h-3.5 bg-white/10 my-auto mx-0.5" />
 
                 <button onClick={closeFolder} title="Close Folder" className="hover:text-red-400 transition-colors">
                   <X size={14} />

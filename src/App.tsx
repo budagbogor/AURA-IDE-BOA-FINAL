@@ -1318,7 +1318,6 @@ Integrations:
     const val = command.trim();
     if (!val) return;
     
-    // Switch to terminal tab and bottom panel
     setBottomTab('terminal');
     setShowBottomPanel(true);
 
@@ -1327,76 +1326,81 @@ Integrations:
       appendTerminalOutput(data, sessionId);
     };
 
-    // Build a VSCode-like prompt with full path
     const cwdDisplay = nativeProjectPath || 'aura-project';
     appendOutput(`${cwdDisplay} $ ${val}`);
 
-    // --- PROTECTIVE CHECK FOR NPM INSTALL ---
-    if (val.trim() === 'npm install' || val.trim() === 'npm i') {
+    const isWindows = window.navigator.platform.toLowerCase().includes('win');
+    const trimmedVal = val.trim();
+    const isNpm = trimmedVal.startsWith('npm');
+
+    if (trimmedVal === 'npm install' || trimmedVal === 'npm i') {
        const hasPackageJson = files.some(f => f.name === 'package.json');
        if (!hasPackageJson) {
-          appendOutput(`[SYSTEM] ⚠️ WARNING: 'package.json' tidak ditemukan di project ini.`);
-          appendOutput(`[SYSTEM] Perintah 'npm install' akan gagal. Membuat file 'package.json' default...`);
-          
+          appendOutput(`[SYSTEM] ⚠️ WARNING: 'package.json' tidak ditemukan.`);
           const defaultPackageJson = {
             name: projectName.toLowerCase().replace(/\s+/g, '-'),
             version: "1.0.0",
             private: true,
             dependencies: {},
-            scripts: {
-              "dev": "vite",
-              "build": "vite build",
-              "preview": "vite preview"
-            }
+            scripts: { "dev": "vite", "build": "vite build", "preview": "vite preview" }
           };
-          
           handleApplyCode('package.json', JSON.stringify(defaultPackageJson, null, 2), 'create_or_modify');
-          appendOutput(`[SYSTEM] ✅ 'package.json' telah dibuat otomatis.`);
+          appendOutput(`[SYSTEM] ✅ 'package.json' dibuat otomatis.`);
        }
     }
 
-    // If running in Tauri Desktop mode, use PowerShell as the universal shell (like VSCode)
+    let finalCommand = val;
+    if (isTauri && isWindows && (val.startsWith('npm') || val.startsWith('npx'))) {
+       try {
+         const binaryName = val.split(' ')[0];
+         const checkCmd = TauriCommand.create('cmd', ['/C', 'where', binaryName]);
+         const out = await checkCmd.execute();
+         if (out.code === 0 && out.stdout) {
+            const lines = out.stdout.split('\r\n').filter(l => l.trim());
+            const fullPath = lines[0].trim();
+            finalCommand = `"${fullPath}" ${val.split(' ').slice(1).join(' ')}`;
+            appendOutput(`[AURA INFO] Resolved ${binaryName} to: ${fullPath}`);
+         }
+       } catch (e) {}
+    }
+
     if (isTauri && TauriCommand) {
       try {
         const normalizedCwd = (nativeProjectPath || '.').replace(/\//g, '\\');
+        const shellExe = isWindows ? 'cmd' : 'sh';
 
-        // Kill existing process if any
         if (activeProcessRef.current) {
           try { await activeProcessRef.current.kill(); } catch (e) {}
           activeProcessRef.current = null;
         }
 
-        // Add to history
         setCommandHistory(prev => [val, ...prev.filter(h => h !== val)].slice(0, 50));
         setHistoryIndex(-1);
 
-        // --- BUILT-IN COMMANDS (handled locally, no shell needed) ---
         if (val.trim() === 'clear' || val.trim() === 'cls') {
           setTerminalSessions(prev => prev.map(s => s.id === sessionId ? { ...s, output: [] } : s));
           return;
         }
         if (val.trim() === 'aura diagnostic') {
-          appendOutput(`[DIAGNOSTIC] OS: Windows`);
+          appendOutput(`[DIAGNOSTIC] OS: ${isWindows ? 'Windows' : 'Unix'}`);
           appendOutput(`[DIAGNOSTIC] CWD: ${normalizedCwd}`);
-          appendOutput(`[DIAGNOSTIC] Tauri Shell Plugin: Loaded`);
-          appendOutput(`[DIAGNOSTIC] Shell Engine: PowerShell (VSCode-compatible)`);
+          try {
+             const nodeCheck = await TauriCommand.create('cmd', ['/C', 'node', '-v']).execute();
+             appendOutput(`[DIAGNOSTIC] Node: ${nodeCheck.stdout.trim()}`);
+             const npmCheck = await TauriCommand.create('cmd', ['/C', 'npm', '-v']).execute();
+             appendOutput(`[DIAGNOSTIC] NPM: ${npmCheck.stdout.trim()}`);
+          } catch(e) {}
           return;
         }
-        if (val.trim() === 'pwd') {
-          appendOutput(normalizedCwd);
-          return;
-        }
+        if (val.trim() === 'pwd') { appendOutput(normalizedCwd); return; }
 
-        // --- Handle 'cd' command to change working directory ---
         if (val.trim().startsWith('cd ')) {
           const target = val.trim().substring(3).trim().replace(/"/g, '').replace(/'/g, '');
           let newPath = '';
           if (target === '..') {
-            const parts = normalizedCwd.split('\\');
-            parts.pop();
+            const parts = normalizedCwd.split('\\'); parts.pop();
             newPath = parts.join('\\') || 'C:\\';
-          } else if (/^[a-zA-Z]:\\/.test(target) || /^[a-zA-Z]:\\\\/.test(target)) {
-            // Absolute path
+          } else if (/^[a-zA-Z]:\\/.test(target)) {
             newPath = target.replace(/\//g, '\\');
           } else {
             newPath = `${normalizedCwd}\\${target}`.replace(/\//g, '\\');
@@ -1406,166 +1410,78 @@ Integrations:
           return;
         }
 
-        // --- ULTRA-ROBUST SHELL EXECUTION (Universal Windows/POSIX) ---
+        appendOutput(`[SYSTEM] Menjalankan melalui ${shellExe}: ${finalCommand}`);
+        setTerminalSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isRunning: true, currentCommand: trimmedVal } : s));
+
         let cmdInstance;
-        const trimmedVal = val.trim();
-        const isNpm = trimmedVal.startsWith('npm');
-        
-        // Detailed log of what's happening
-        appendOutput(`[SYSTEM] Menjalankan perintah: "${trimmedVal}"`);
-        appendOutput(`[SYSTEM] Direktori Aktif (CWD): ${normalizedCwd}`);
-
-        // Update session to running state
-        setTerminalSessions(prev => prev.map(s => 
-          s.id === sessionId ? { ...s, isRunning: true, currentCommand: trimmedVal } : s
-        ));
-
-        try {
-          if (isTauri && window.navigator.platform.includes('Win')) {
-            // Windows Triple-Layer Robust Strategy:
-            // 1. Force use npm.cmd or cmd /C for all npm commands to ensure batch scripts run correctly
-            // 2. Use cmd /S /C with explicit quoting for reliability
-            
-            if (isNpm) {
-               // Use cmd /C for npm to ensure it finds npm.cmd and captures output correctly
-               appendOutput(`[SYSTEM] Menjalankan npm melalui CMD: ${trimmedVal}`);
-               cmdInstance = TauriCommand.create('cmd', ['/S', '/C', `"${trimmedVal}"`], { cwd: normalizedCwd });
-            } else {
-               // Non-npm command
-               appendOutput(`[SYSTEM] Menggunakan Shell Optimasi: CMD /S /C`);
-               cmdInstance = TauriCommand.create('cmd', ['/S', '/C', `"${trimmedVal}"`], { cwd: normalizedCwd });
-            }
-          } else {
-            // Posix or other
-            cmdInstance = TauriCommand.create('powershell', ['-NoLogo', '-NoProfile', '-Command', trimmedVal], { cwd: normalizedCwd });
-          }
-        } catch (err: any) {
-          appendOutput(`[SYSTEM] Eksekusi primer gagal: ${err?.message}. Mencoba fallback PowerShell...`);
-          cmdInstance = TauriCommand.create('powershell', ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', trimmedVal], { cwd: normalizedCwd });
+        if (isWindows) {
+          cmdInstance = TauriCommand.create('cmd', ['/S', '/C', `"${finalCommand}"`], { cwd: normalizedCwd });
+        } else {
+          cmdInstance = TauriCommand.create('sh', ['-c', finalCommand], { cwd: normalizedCwd });
         }
-
-        if (!cmdInstance) throw new Error("Gagal menginisialisasi Command instance.");
 
         let stdoutBuffer = '';
         let stderrBuffer = '';
-
         const handleData = (data: string, isError = false) => {
           if (!data) return;
           appendOutput(data);
-          if (isError) stderrBuffer += data + '\n';
-          else stdoutBuffer += data + '\n';
-
-          // --- DYNAMIC URL DETECTION (Fase 3 - Enhanced) ---
-          const urlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.1|0\.0\.0\.0|\[::\]):\d+)/i;
+          if (isError) stderrBuffer += data + '\n'; else stdoutBuffer += data + '\n';
+          const urlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::\]):\d+)/i;
           const match = data.match(urlRegex);
           if (match && match[0]) {
-             const detectedUrl = match[0].replace(/0\.0\.0\.0|\[::\]|0\.0\.0\.1/, 'localhost');
+             const detectedUrl = match[0].replace(/0\.0\.0\.0|\[::\]/, 'localhost');
              appendTerminalOutput(`[AURA BROWSER] 🚀 Server Aktif: ${detectedUrl}`);
-             appendTerminalOutput(`[AURA BROWSER] Membuka preview di browser sistem...`);
-             
-             // Auto-trigger system browser
-             if (isTauri && TauriCommand) {
-                TauriCommand.create('cmd', ['/C', 'start', detectedUrl]).execute().catch(() => {});
-             }
+             TauriCommand.create('cmd', ['/C', 'start', detectedUrl]).execute().catch(() => {});
           }
         };
 
-        // Attach listeners to the command instance BEFORE spawning (v2 API)
-        cmdInstance.on('stdout', (data: string) => handleData(data));
-        cmdInstance.on('stderr', (data: string) => handleData(data, true));
-
-        cmdInstance.on('close', (data: { code: number | null }) => {
+        cmdInstance.on('stdout', data => handleData(data));
+        cmdInstance.on('stderr', data => handleData(data, true));
+        cmdInstance.on('close', data => {
           activeProcessRef.current = null;
-          
-          // Reset session running state
-          setTerminalSessions(prev => prev.map(s => 
-            s.id === sessionId ? { ...s, isRunning: false } : s
-          ));
-
+          setTerminalSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isRunning: false } : s));
           if (data?.code !== 0 && data?.code !== null) {
             appendOutput(`Process exited with code ${data.code}`);
-            
-            // Auto-Fix Trigger Autonomous Loop
             const errLog = stderrBuffer.trim() ? stderrBuffer : stdoutBuffer;
             if (errLog) {
                const shortLog = errLog.length > 2500 ? errLog.substring(errLog.length - 2500) : errLog;
-               appendOutput(`[AUTO-FIX] Menemukan error, mendelegasikan perbaikan pada Composer AI...`);
-               setAutoFixMsg(`[AUTO-FIX] Terminal command \`${val}\` gagal dengan status ${data.code}.\n\nError Log:\n\`\`\`\n${shortLog}\n\`\`\`\n\nTolong analisis sumber masalah di codebase, lakukan perbaikan kode secara otomatis menggunakan blok \`\`\`file:[path]\`\`\`, dan jalankan kembali perintah aslinya.`);
+               appendOutput(`[AUTO-FIX] Mendelegasikan perbaikan ke AI...`);
+               setAutoFixMsg(`Terminal command \`${val}\` gagal (${data.code}).\n\nLog:\n\`\`\`\n${shortLog}\n\`\`\``);
                setAutoFixTrigger(c => c + 1);
             }
           } else {
-             // Successful exit - check if node_modules was expected but missing
-             if (trimmedVal.includes('npm install') || trimmedVal.includes('npm i')) {
-                // We use a small delay to let FS settle
+             if (trimmedVal.includes('npm install')) {
                 setTimeout(async () => {
-                   try {
-                     // Check node_modules via shell as we are in the renderer
-                     const check = await TauriCommand.create('cmd', ['/C', 'if exist node_modules (echo YES) else (echo NO)'], { cwd: normalizedCwd }).execute();
-                     if (check.stdout.trim().includes('NO')) {
-                        appendOutput(`[SYSTEM] ⚠️ WARNING: 'npm install' selesai tapi 'node_modules' TIDAK ditemukan.`);
-                        appendOutput(`[SYSTEM] Hal ini biasanya terjadi jika Registry NPM lambat atau izin folder dibatasi.`);
-                        appendOutput(`[SYSTEM] Mencoba opsi darurat: npm install --no-bin-links...`);
-                        executeCommand('npm install --no-bin-links');
-                     } else {
-                        appendOutput(`[SYSTEM] ✅ Konfirmasi: node_modules berhasil dibuat.`);
-                     }
-                   } catch (e) {}
+                   const check = await TauriCommand.create('cmd', ['/C', 'if exist node_modules (echo YES)'], { cwd: normalizedCwd }).execute();
+                   if (!check.stdout.includes('YES')) {
+                      appendOutput(`[SYSTEM] ⚠️ WARNING: node_modules TIDAK ditemukan.`);
+                      executeCommand('npm install --no-bin-links');
+                   }
                 }, 1000);
              }
              appendOutput(`Process completed successfully.`);
           }
         });
-
-        // Spawn the process
-        const child = await cmdInstance.spawn();
-        activeProcessRef.current = child;
-
-        return; 
-      } catch (err: any) {
-        console.error('Tauri Shell Error:', err);
-        appendOutput(`[ERROR] ${err?.message || 'Gagal menjalankan perintah.'}`);
-        activeProcessRef.current = null;
-      }
-    } else {
-      // Fallback Simulator (only for Browser mode where no Tauri is available)
-      const cmd = val.toLowerCase();
-      if (cmd === 'clear' || cmd === 'cls') {
-        setTerminalSessions(prev => prev.map(s => s.id === sessionId ? { ...s, output: [] } : s));
-      } else if (cmd === 'ls' || cmd === 'dir') {
-        appendOutput(files.map(f => f.name).join('  '));
-      } else if (cmd === 'help') {
-        appendOutput('Available: clear, ls, help, build, aura --version');
-      } else if (cmd === 'build' || cmd === 'npm run build') {
-        appendOutput('> aura-project@1.0.0 build');
-        appendOutput('✓ built in 1.23s (Simulated)');
-      } else if (cmd === 'aura --version') {
-        appendOutput('Aura IDE v5.1.1 (Browser Simulator)');
-      } else {
-        appendOutput(`[BROWSER MODE] Perintah "${val}" tidak didukung. Harap gunakan aplikasi Desktop (.exe) untuk akses Terminal asli.`);
-      }
-    }
+        activeProcessRef.current = await cmdInstance.spawn();
+      } catch (err: any) { appendOutput(`[ERROR] ${err?.message}`); }
+    } else { appendOutput(`[BROWSER MODE] Perintah "${val}" tidak didukung.`); }
   };
 
   const handleTerminalKill = async () => {
     if (activeProcessRef.current) {
       try {
         await activeProcessRef.current.kill();
-        appendTerminalOutput('[SYSTEM] Process terminated by user.');
+        appendTerminalOutput('[SYSTEM] Process terminated.');
         activeProcessRef.current = null;
-      } catch (e: any) {
-        console.error('Kill Error:', e);
-      }
+      } catch (e) {}
     }
   };
 
   const handleTerminalCommand = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       const val = terminalInput.trim();
-      if (!val) return;
-      setTerminalInput('');
-      await executeCommand(val);
+      if (val) { setTerminalInput(''); await executeCommand(val); }
     } else if (e.key === 'c' && e.ctrlKey) {
-      // Ctrl+C in input to kill process
       handleTerminalKill();
     }
   };

@@ -225,12 +225,12 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
             </div>
             
             <div className={cn(
-              "w-[98%] p-3 rounded-xl text-[11px] leading-snug shadow-xl max-w-full glass-card transition-all hover:border-white/20",
+              "w-full p-4 rounded-2xl text-[11px] leading-relaxed shadow-xl max-w-full glass-card transition-all hover:border-white/20",
               msg.role === 'user' 
-                ? "bg-blue-600/15 border-blue-500/30 text-blue-50 rounded-tr-none self-end" 
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-50 rounded-tr-none self-end" 
                 : "bg-white/5 border-white/10 text-gray-300 rounded-tl-none"
             )}>
-              <div className="prose prose-invert prose-sm max-w-none break-all whitespace-pre-wrap !text-[11px] !leading-tight">
+              <div className="prose prose-invert prose-sm max-w-none break-words whitespace-pre-wrap !text-[11px] !leading-normal">
                 <Markdown
                   components={{
                     code({ node, inline, className, children, ...props }: any) {
@@ -252,17 +252,17 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
 
                         return (
                           <div className={cn(
-                            "my-3 p-3 rounded-lg border text-xs flex items-center justify-between gap-3 shadow-sm transition-all",
+                            "my-3 p-3 rounded-xl border text-xs flex flex-wrap items-center justify-between gap-3 shadow-md transition-all",
                             isWriting 
                               ? "bg-blue-500/10 border-blue-500/30 text-blue-400 animate-pulse" 
                               : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                           )}>
-                            <span className="flex items-center gap-2 font-mono break-all font-bold">
-                              <span className="opacity-50">File:</span> 
-                              {fileName}
+                            <span className="flex items-center gap-2 font-mono break-words font-bold min-w-0 flex-1">
+                              <span className="opacity-50 shrink-0">File:</span> 
+                              <span className="truncate hover:whitespace-normal hover:break-all transition-all">{fileName}</span>
                             </span>
                             <span className={cn(
-                              "flex items-center gap-1.5 px-2 py-1 rounded font-bold uppercase tracking-wider text-[9px] whitespace-nowrap",
+                              "flex items-center gap-1.5 px-2 py-1 rounded-lg font-black uppercase tracking-wider text-[9px] shrink-0",
                               isWriting ? "bg-blue-500/20 text-blue-300" : "bg-emerald-500/20 text-emerald-300"
                             )}>
                               <span className={cn(
@@ -281,17 +281,17 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                         
                         return (
                           <div className={cn(
-                            "my-3 p-3 rounded-lg border text-xs flex items-center justify-between gap-3 shadow-sm transition-all",
+                            "my-3 p-3 rounded-xl border text-xs flex flex-wrap items-center justify-between gap-3 shadow-md transition-all",
                             isRunning
                               ? "bg-purple-500/10 border-purple-500/30 text-purple-400 animate-pulse"
                               : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                           )}>
-                            <span className="flex items-center gap-2 font-mono break-all font-bold">
-                              <span className="opacity-50">Log:</span> 
+                            <span className="flex items-center gap-2 font-mono break-words font-bold min-w-0 flex-1">
+                              <span className="opacity-50 shrink-0">Log:</span> 
                               {cmd}
                             </span>
                             <span className={cn(
-                              "flex items-center gap-1.5 px-2 py-1 rounded font-bold uppercase tracking-wider text-[9px] whitespace-nowrap",
+                              "flex items-center gap-1.5 px-2 py-1 rounded-lg font-black uppercase tracking-wider text-[9px] shrink-0",
                               isRunning ? "bg-purple-500/20 text-purple-300" : "bg-emerald-500/20 text-emerald-300"
                             )}>
                               <span className={cn(
