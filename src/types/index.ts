@@ -16,6 +16,8 @@ export interface TerminalSession {
   id: string;
   name: string;
   output: string[];
+  isRunning?: boolean;
+  currentCommand?: string;
 }
 
 export interface CodeProblem {

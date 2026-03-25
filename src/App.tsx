@@ -1435,27 +1435,45 @@ Integrations:
           return;
         }
 
-        // --- UNIVERSAL SHELL EXECUTION (Tauri v2 Standard) ---
+        // --- ULTRA-ROBUST SHELL EXECUTION (Universal Windows/POSIX) ---
         let cmdInstance;
-        const isNpm = val.trim().startsWith('npm');
+        const trimmedVal = val.trim();
+        const isNpm = trimmedVal.startsWith('npm');
         
+        // Detailed log of what's happening
+        appendOutput(`[SYSTEM] Menjalankan perintah: "${trimmedVal}"`);
+        appendOutput(`[SYSTEM] Direktori Aktif (CWD): ${normalizedCwd}`);
+
+        // Update session to running state
+        setTerminalSessions(prev => prev.map(s => 
+          s.id === sessionId ? { ...s, isRunning: true, currentCommand: trimmedVal } : s
+        ));
+
         try {
           if (isTauri && window.navigator.platform.includes('Win')) {
-            // Windows Optimization: Use cmd /C for npm to ensure better path resolution
+            // Windows Robust Strategy:
+            // 1. Always ensure PowerShell is used with Bypass execution policy (many npm commands are scripts)
+            // 2. Use NoProfile to avoid long delays or custom prompt errors
+            // 3. Chain with CMD if PowerShell itself fails (fallback)
+            
             if (isNpm) {
-               appendOutput(`[SYSTEM] Executing via CMD: ${val}`);
-               cmdInstance = TauriCommand.create('cmd', ['/C', val], { cwd: normalizedCwd });
+               appendOutput(`[SYSTEM] Menggunakan Shell Optimasi: PowerShell (npm detected)`);
+               cmdInstance = TauriCommand.create(
+                 'powershell.exe', 
+                 ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', `& { ${trimmedVal} }`], 
+                 { cwd: normalizedCwd }
+               );
             } else {
-               appendOutput(`[SYSTEM] Executing via PowerShell: ${val}`);
-               cmdInstance = TauriCommand.create('powershell', ['-NoLogo', '-NoProfile', '-Command', val], { cwd: normalizedCwd });
+               appendOutput(`[SYSTEM] Menggunakan Shell Optimasi: CMD`);
+               cmdInstance = TauriCommand.create('cmd', ['/C', trimmedVal], { cwd: normalizedCwd });
             }
           } else {
-            // Fallback for other OS or non-npm
-            cmdInstance = TauriCommand.create('powershell', ['-NoLogo', '-NoProfile', '-Command', val], { cwd: normalizedCwd });
+            // Posix or other
+            cmdInstance = TauriCommand.create('powershell', ['-NoLogo', '-NoProfile', '-Command', trimmedVal], { cwd: normalizedCwd });
           }
         } catch (err: any) {
-          appendOutput(`[SYSTEM] Initial attempt failed, using fallback cmd...`);
-          cmdInstance = TauriCommand.create('cmd', ['/C', val], { cwd: normalizedCwd });
+          appendOutput(`[SYSTEM] Inisialisasi shell gagal: ${err?.message}. Menggunakan fallback CMD...`);
+          cmdInstance = TauriCommand.create('cmd', ['/C', trimmedVal], { cwd: normalizedCwd });
         }
 
         if (!cmdInstance) throw new Error("Gagal menginisialisasi Command instance.");
@@ -1493,6 +1511,12 @@ Integrations:
 
         cmdInstance.on('close', (data: { code: number | null }) => {
           activeProcessRef.current = null;
+          
+          // Reset session running state
+          setTerminalSessions(prev => prev.map(s => 
+            s.id === sessionId ? { ...s, isRunning: false } : s
+          ));
+
           if (data?.code !== 0 && data?.code !== null) {
             appendOutput(`Process exited with code ${data.code}`);
             
