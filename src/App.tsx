@@ -1347,9 +1347,24 @@ Integrations:
   const executeCommand = async (command: string) => {
     const val = command.trim();
     if (!val) return;
-    
+
     setBottomTab('terminal');
     setShowBottomPanel(true);
+
+    // --- NATIVE SYNC GUARD (v2.4.0) ---
+    if (!nativeProjectPath) {
+      const confirmSync = window.confirm(
+        "AURA TERMINAL: Eksekusi perintah (seperti npm) membutuhkan file fisik di disk.\n\n" +
+        "Folder proyek belum ditentukan. Ingin memilih folder sekarang untuk sinkronisasi?"
+      );
+      if (confirmSync) {
+        // Trigger folder selection logic (simplified here)
+        appendTerminalOutput('[SYSTEM] Silakan klik tombol "CLOSE FOLDER" dan pilih folder baru untuk aktivasi Native Mode.');
+        return;
+      }
+      appendTerminalOutput('[ERROR] Gagal eksekusi: Perintah terminal membutuhkan Native Mode (Sinkronisasi Disk).');
+      return;
+    }
 
     const sessionId = activeTerminalId;
     const appendOutput = (data: string) => {

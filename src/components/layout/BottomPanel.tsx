@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Terminal, Plus, X, AlertCircle, AlertTriangle, Info, CheckCircle, RefreshCw, Play, Monitor } from 'lucide-react';
+import { TerminalAdapter } from './TerminalAdapter';
 import { cn } from '@/utils/cn';
 import { FileItem } from '@/types';
 
@@ -123,73 +124,18 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
               </button>
             </div>
 
-            {/* Terminal Output */}
-            <div 
-              ref={terminalEndRef}
-              className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1 relative bg-aura-glow"
-            >
-              <div className="text-blue-400 font-black text-[10px] tracking-[0.2em] uppercase mb-3 text-glow-blue opacity-80 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                Aura Terminal Engine v5.1.0
-              </div>
+            {/* Terminal Output - v2.4.0 Professional XTerm */}
+            <div className="flex-1 overflow-hidden relative border-t border-white/5 bg-[#0a0a0a]">
+              <TerminalAdapter 
+                id={currentSession?.id}
+                output={currentSession?.output || []}
+                isRunning={currentSession?.isRunning}
+                height={bottomPanelHeight - 80}
+              />
               
-              {/* Active Process Floating Animation */}
-              {currentSession?.isRunning && (
-                <div className="sticky top-0 right-0 flex justify-end z-[5] pointer-events-none">
-                  <div className="bg-blue-600/20 border border-blue-500/30 rounded-full px-3 py-1 flex items-center gap-2 backdrop-blur-md shadow-2xl animate-bounce mb-2">
-                    <RefreshCw size={10} className="animate-spin text-blue-400" />
-                    <span className="text-[10px] font-bold text-blue-300 uppercase tracking-tighter">Running: {currentSession.currentCommand?.substring(0, 15)}...</span>
-                  </div>
-                </div>
-              )}
-
-              {currentSession?.output?.map((line: string, i: number) => {
-                const isUrl = line.includes('http://localhost') || line.includes('http://127.0.0.1');
-                
-                return (
-                  <div key={i} className="flex gap-2 group">
-                    {line.includes(' $ ') ? (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className="text-emerald-500">➜</span>
-                        <span className="text-blue-400 font-bold text-[12px]">{line.split(' $ ')[0]}</span>
-                        <span className="text-gray-600">$</span>
-                        <span className="text-white ml-1">{line.split(' $ ').slice(1).join(' $ ')}</span>
-                      </div>
-                    ) : isUrl ? (
-                      <div className="my-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-between gap-4 w-full backdrop-blur-sm group-hover:border-emerald-500/40 transition-all">
-                        <div className="flex items-center gap-3">
-                           <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400">
-                             <Play size={16} />
-                           </div>
-                           <div className="flex flex-col">
-                             <span className="text-[9px] uppercase font-black tracking-widest text-emerald-500/60">Development Server</span>
-                             <span className="text-emerald-300 font-mono font-bold text-[13px]">{line.replace('[AURA BROWSER] 🚀 Server Aktif: ', '')}</span>
-                           </div>
-                        </div>
-                        <button 
-                          onClick={() => window.open(line.match(/https?:\/\/[^\s]+/)?.[0], '_blank')}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[10px] font-bold transition-all shadow-lg active:scale-95 flex items-center gap-1.5"
-                        >
-                          <Monitor size={12} />
-                          OPEN PREVIEW
-                        </button>
-                      </div>
-                    ) : (
-                      <div className={cn(
-                        "whitespace-pre-wrap break-all leading-5",
-                        line.startsWith('Command not found') ? "text-red-400" : 
-                        line.startsWith('[ERROR]') ? "text-red-500" :
-                        line.startsWith('[INFO]') ? "text-blue-400" :
-                        line.startsWith('✓') || line.startsWith('Process completed successfully') || line.startsWith('Process exited with code 0') ? "text-emerald-400 font-bold" :
-                        line.startsWith('[SYSTEM]') ? "text-purple-400 italic opacity-80 text-[11px]" :
-                        line.startsWith('Process exited') ? "text-yellow-500" :
-                        "text-[#cccccc] opacity-90"
-                      )}>{line}</div>
-                    )}
-                  </div>
-                );
-              })}
-              <div ref={scrollAnchorRef} />
+              <div className="absolute top-2 right-4 text-blue-400/30 font-black text-[9px] tracking-widest uppercase pointer-events-none z-10">
+                AURA ENGINE v6.0
+              </div>
             </div>
 
             {/* Terminal Input Area */}
