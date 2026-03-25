@@ -346,14 +346,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Search size={20} className={cn("transition-transform duration-200", sidebarTab === 'search' && "scale-110")} />
           {sidebarTab === 'search' && <motion.div layoutId="activeTab" className="absolute left-[-12px] w-1 h-8 bg-blue-500 rounded-r-full" />}
         </div>
-        <div 
-          onClick={() => setSidebarTab('ai')}
-          title="Aura AI Chat (Ctrl+Shift+A)"
-          className={cn("p-2 cursor-pointer transition-all duration-200 rounded-xl group relative", sidebarTab === 'ai' ? "text-white bg-blue-600/20 shadow-lg shadow-blue-500/10" : "text-[#858585] hover:text-white hover:bg-white/5")}
-        >
-          <Sparkles size={20} className={cn("transition-transform duration-200", sidebarTab === 'ai' && "scale-110")} />
-          {sidebarTab === 'ai' && <motion.div layoutId="activeTab" className="absolute left-[-12px] w-1 h-8 bg-blue-500 rounded-r-full" />}
-        </div>
+        {/* AI Sidebar button removed for simplified layout */}
         <div 
           onClick={() => setSidebarTab('git')}
           title="Source Control (Ctrl+Shift+G)"
@@ -545,64 +538,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </motion.div>
             )}
 
-            {/* AI TAB */}
-            {sidebarTab === 'ai' && (
-              <motion.div 
-                key="ai"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                className="flex flex-col h-full overflow-hidden"
-              >
-                <AiComposerPanel 
-                  provider={aiProvider}
-                  apiKey={
-                    aiProvider === 'gemini' ? geminiApiKey : 
-                    aiProvider === 'openrouter' ? openRouterApiKey : 
-                    aiProvider === 'bytez' ? bytezApiKey :
-                    sumopodApiKey
-                  }
-                  model={
-                    aiProvider === 'gemini' ? selectedModel : 
-                    aiProvider === 'openrouter' ? openRouterModel : 
-                    aiProvider === 'bytez' ? bytezModel :
-                    sumopodModel
-                  }
-                  files={files}
-                  activeFileId={activeFileId}
-                  appendTerminalOutput={appendTerminalOutput}
-                  onSuccess={onAiSuccess}
-                  projectTree={files.map(f => f.id).join('\n')}
-                  messages={composerMessages}
-                  setMessages={setComposerMessages}
-                  onExecuteCommand={executeCommand}
-                  onApplyCode={(path, content, action) => {
-                    const isDelete = action === 'delete';
-                    setFiles(currentFiles => {
-                      if (isDelete) {
-                        return currentFiles.filter(f => f.id !== path && f.name !== path);
-                      }
-                      const idx = currentFiles.findIndex(f => f.id === path || f.name === path);
-                      if (idx !== -1) {
-                        const existing = currentFiles[idx];
-                        if (existing.content === content) return currentFiles;
-                        const updated = [...currentFiles];
-                        updated[idx] = { ...existing, content, lastModified: Date.now() };
-                        return updated;
-                      }
-                      return [...currentFiles, { 
-                        id: path, 
-                        name: path.split('/').pop() || path, 
-                        content, 
-                        language: path.endsWith('.ts') || path.endsWith('.tsx') ? 'typescript' : 'javascript',
-                        lastModified: Date.now()
-                      }];
-                    });
-                    if (!isDelete && activeFileId !== path) setActiveFileId(path);
-                  }}
-                />
-              </motion.div>
-            )}
+            {/* AI TAB removed - use Right Panel (View -> Layout) */}
 
 
             {/* GITHUB TAB */}
