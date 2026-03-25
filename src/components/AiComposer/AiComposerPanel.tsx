@@ -4,7 +4,7 @@ import { auditProjectStructure } from '../../services/ai/structureVerifier';
 import { generateAuraRules } from '../../services/ai/auraRules';
 import { CodeBlockPreview } from './CodeBlockPreview';
 import { FileItem } from '../../types';
-import { Send, Bot, User, RefreshCw, Cpu, Loader2 } from 'lucide-react';
+import { Send, Bot, User, RefreshCw, Cpu, Loader2, Globe, Sparkles } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import Markdown from 'react-markdown';
 
@@ -236,32 +236,69 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                     code({ node, inline, className, children, ...props }: any) {
                       const fileMatch = /language-(file|delete):([^\n]+)/.exec(className || '');
                       const cmdMatch = /language-command:([^\n]+)/.exec(className || '');
+                      
+                      // Check if the current message is still being streamed
+                      const isLastMessage = idx === messages.length - 1;
+                      const isCurrentlyStreaming = isLoading && isLastMessage;
+                      
+                      // Check if this specific block is closed (by looking at the children and context)
+                      // A more robust way: if it's NOT the last message, it's definitely closed.
+                      // If it IS the last message, we check if the full content ends with ```
+                      const isBlockClosed = !isLastMessage || msg.content.trim().endsWith('```');
 
                       if (!inline && fileMatch) {
+                        const fileName = fileMatch[2].trim();
+                        const isWriting = isCurrentlyStreaming && !isBlockClosed;
+
                         return (
-                          <div className="my-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs flex items-center justify-between gap-3 shadow-sm backdrop-blur-sm">
-                            <span className="flex items-center gap-2 font-mono break-all">
-                              <span className="opacity-50 text-blue-300">File:</span> 
-                              <b>{fileMatch[2].trim()}</b>
+                          <div className={cn(
+                            "my-3 p-3 rounded-lg border text-xs flex items-center justify-between gap-3 shadow-sm transition-all",
+                            isWriting 
+                              ? "bg-blue-500/10 border-blue-500/30 text-blue-400 animate-pulse" 
+                              : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                          )}>
+                            <span className="flex items-center gap-2 font-mono break-all font-bold">
+                              <span className="opacity-50">File:</span> 
+                              {fileName}
                             </span>
-                            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-bold uppercase tracking-wider text-[9px] animate-pulse whitespace-nowrap">
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_5px_rgba(96,165,250,0.8)]" />
-                              Sedang Di Tulis...
+                            <span className={cn(
+                              "flex items-center gap-1.5 px-2 py-1 rounded font-bold uppercase tracking-wider text-[9px] whitespace-nowrap",
+                              isWriting ? "bg-blue-500/20 text-blue-300" : "bg-emerald-500/20 text-emerald-300"
+                            )}>
+                              <span className={cn(
+                                "w-1.5 h-1.5 rounded-full",
+                                isWriting ? "bg-blue-400" : "bg-emerald-400"
+                              )} />
+                              {isWriting ? "Sedang Di Tulis..." : "Selesai"}
                             </span>
                           </div>
                         );
                       }
 
                       if (!inline && cmdMatch) {
+                        const cmd = cmdMatch[1].trim();
+                        const isRunning = isCurrentlyStreaming && !isBlockClosed;
+                        
                         return (
-                          <div className="my-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center justify-between gap-3 shadow-sm backdrop-blur-sm">
-                            <span className="flex items-center gap-2 font-mono break-all">
-                              <span className="opacity-50 text-emerald-300">Terminal:</span> 
-                              <b>{cmdMatch[1].trim()}</b>
+                          <div className={cn(
+                            "my-3 p-3 rounded-lg border text-xs flex items-center justify-between gap-3 shadow-sm transition-all",
+                            isRunning
+                              ? "bg-purple-500/10 border-purple-500/30 text-purple-400 animate-pulse"
+                              : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                          )}>
+                            <span className="flex items-center gap-2 font-mono break-all font-bold">
+                              <span className="opacity-50">Log:</span> 
+                              {cmd}
                             </span>
-                            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-wider text-[9px] animate-pulse whitespace-nowrap">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]" />
-                              Menjalankan Perintah...
+                            <span className={cn(
+                              "flex items-center gap-1.5 px-2 py-1 rounded font-bold uppercase tracking-wider text-[9px] whitespace-nowrap",
+                              isRunning ? "bg-purple-500/20 text-purple-300" : "bg-emerald-500/20 text-emerald-300"
+                            )}>
+                              <span className={cn(
+                                "w-1.5 h-1.5 rounded-full",
+                                isRunning ? "bg-purple-400" : "bg-emerald-400"
+                              )} />
+                              {isRunning ? "Menjalankan..." : "Selesai"}
                             </span>
                           </div>
                         );
@@ -318,6 +355,9 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                   <optgroup label="Web & Enterprise">
                     <option value="Auto">Auto (Smart)</option>
                     <option value="Full Stack">Full Stack</option>
+                    <option value="Frontend Elite">Frontend Elite</option>
+                    <option value="Security Auditor">Security Auditor</option>
+                    <option value="TDD Master">TDD Master</option>
                     <option value="Frontend">Elite UI/UX Master</option>
                     <option value="Backend">Backend API</option>
                   </optgroup>
@@ -334,6 +374,17 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                     <option value="Game Dev">Game Dev (Canvas)</option>
                   </optgroup>
                 </select>
+                
+                {onExecuteCommand && (
+                  <button 
+                    onClick={() => onExecuteCommand('npm run dev')}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-all text-[10px] font-bold"
+                    title="Jalankan Preview Project"
+                  >
+                    <Globe size={12} />
+                    PREVIEW
+                  </button>
+                )}
               </div>
               <button 
                 onClick={() => handleSend()}

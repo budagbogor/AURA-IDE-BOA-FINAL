@@ -1196,16 +1196,22 @@ Integrations:
     
     const packageJson = files.find(f => f.name === 'package.json');
     if (packageJson) {
-      appendTerminalOutput('[AURA MAGIC] Terdeteksi package.json. Menyiapkan environment...');
-      if (stats.fileCount > 3 || stats.commands.some(c => c.includes('create-react-app') || c.includes('vite'))) {
-        executeCommand('npm install && npm run dev');
-        appendTerminalOutput('[AURA MAGIC] Menjalankan npm install & start di latar belakang...');
+      appendTerminalOutput('[AURA MAGIC] Terdeteksi package.json. Menyiapkan environment otomatis...');
+      
+      // Proactively run installation if many files changed or project structure is new
+      if (stats.fileCount > 3 || stats.commands.some(c => c.includes('create') || c.includes('vite'))) {
+        appendTerminalOutput('[AURA MAGIC] Menjalankan alur: npm install -> npm run dev');
+        // We use wait logic or separate commands for better reliability on Windows
+        executeCommand('npm install');
         setTimeout(() => {
-          appendTerminalOutput('[AURA MAGIC] Lingkungan siap. Silakan buka localhost di browser Anda.');
-        }, 5000);
+           executeCommand('npm run dev');
+        }, 1500);
+      } else {
+        // Just run dev if it's an existing project with minor changes
+        executeCommand('npm run dev');
       }
     } else {
-      appendTerminalOutput('[AURA MAGIC] Perubahan diterapkan.');
+      appendTerminalOutput('[AURA MAGIC] Perubahan diterapkan. (Manual: npm install jika diperlukan)');
     }
   };
 
