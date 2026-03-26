@@ -56,13 +56,3 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Upload Tauri Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tauri-build
-          path: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-          if-no-files-found: warn
-          retention-days: 7
-
