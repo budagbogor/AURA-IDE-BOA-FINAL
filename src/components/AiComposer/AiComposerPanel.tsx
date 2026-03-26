@@ -333,6 +333,11 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
       </div>
 
       <div className="p-4 bg-[#252526] border-t border-white/5">
+         <div className="flex items-center gap-2 mb-2 px-1">
+            <div className="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+              <span className="text-blue-400 font-bold">{files.length}</span> files in context
+            </div>
+         </div>
          <div className="relative bg-[#1e1e1e] border border-white/10 rounded-2xl focus-within:border-blue-500/50 transition-all p-2 shadow-inner">
             <textarea 
               placeholder="Ask Composer to create or edit files... (Shift+Enter for newline)"
@@ -348,9 +353,6 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
             />
             <div className="flex items-center justify-between mt-1 px-1">
               <div className="flex items-center gap-3">
-                <div className="text-[10px] text-gray-500">
-                  <span className="text-blue-400 font-bold">{files.length}</span> files in context
-                </div>
                 <select 
                   value={category} 
                   onChange={(e) => setCategory(e.target.value)}
@@ -379,17 +381,6 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                     <option value="Game Dev">Game Dev (Canvas)</option>
                   </optgroup>
                 </select>
-                
-                {onExecuteCommand && (
-                  <button 
-                    onClick={() => onExecuteCommand('npm run dev')}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-all text-[10px] font-bold"
-                    title="Jalankan Preview Project"
-                  >
-                    <Globe size={12} />
-                    PREVIEW
-                  </button>
-                )}
               </div>
               <button 
                 onClick={() => handleSend()}
@@ -402,7 +393,7 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
                 <Send size={16} />
               </button>
             </div>
-          </div>
+         </div>
           <div className="mt-2 text-center">
             <span className="text-[9px] text-gray-600">Standard Concept Selection (v5.4.0) - Elite Mode</span>
           </div>

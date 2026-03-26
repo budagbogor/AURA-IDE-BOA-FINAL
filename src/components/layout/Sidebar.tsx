@@ -436,6 +436,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
             {sidebarTab === 'files' && (
               <div className="flex items-center gap-2.5">
+                <button 
+                  onClick={() => executeCommand('npm run dev')} 
+                  title="Run Preview Project (npm run dev)" 
+                  className="hover:text-emerald-400 transition-colors text-emerald-500/80"
+                >
+                  <Play size={14} fill="currentColor" />
+                </button>
                 <button onClick={createNewFile} title="New File" className="hover:text-white transition-colors">
                   <Plus size={14} />
                 </button>

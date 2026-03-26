@@ -443,6 +443,31 @@ export default function App() {
     return () => window.removeEventListener('click', handleClick);
   }, []);
 
+  // --- RESTORE TAURI INITIALIZATION (v2.4.1) ---
+  useEffect(() => {
+    if (isTauri) {
+      const initTauri = async () => {
+        try {
+          // Dynamic imports for browser compatibility
+          const shell = await import('@tauri-apps/plugin-shell');
+          const dialog = await import('@tauri-apps/plugin-dialog');
+          const fs = await import('@tauri-apps/plugin-fs');
+          
+          setTauriCommand(shell);
+          setTauriDialog(dialog);
+          setTauriFs(fs);
+          
+          appendTerminalOutput('[SYSTEM] Tauri Desktop Engine Initialized.');
+          console.log('[DEBUG] Tauri plugins loaded successfully.');
+        } catch (err: any) {
+          console.error('Tauri Init Error:', err);
+          appendTerminalOutput(`[ERROR] Gagal memuat plugin Tauri: ${err.message}`);
+        }
+      };
+      initTauri();
+    }
+  }, [isTauri, setTauriCommand, setTauriDialog, setTauriFs]);
+
 
 
 
@@ -796,6 +821,38 @@ Integrations:
     }
   };
 
+  const saveAllToDisk = async (targetPath: string) => {
+    if (!tauriFs) {
+      appendTerminalOutput('[ERROR] Tauri FS API tidak tersedia.');
+      return;
+    }
+    
+    appendTerminalOutput(`[SYSTEM] Menyimpan ${files.length} file ke disk: ${targetPath}...`);
+    try {
+      for (const file of files) {
+        // Construct full path and normalize
+        let fullPath = file.id.includes(':') ? file.id : `${targetPath}/${file.name}`.replace(/\/+/g, '/').replace(/\\+/g, '\\');
+        
+        // Ensure parent directory exists
+        const pathParts = fullPath.split(/[\\/]/);
+        pathParts.pop();
+        let currentDir = "";
+        for (const part of pathParts) {
+          if (!part) continue;
+          currentDir += (currentDir ? "/" : "") + part;
+          if (currentDir.length <= 3 && currentDir.includes(':')) continue; // Skip Windows drive root
+          try { await tauriFs.mkdir(currentDir, { recursive: true }); } catch (e) {}
+        }
+        
+        await tauriFs.writeTextFile(fullPath, file.content);
+      }
+      appendTerminalOutput('[SYSTEM] ✅ Berhasil menyimpan semua file ke disk.');
+    } catch (err: any) {
+      console.error('Save All to Disk Error:', err);
+      appendTerminalOutput(`[ERROR] Gagal menyimpan file: ${err.message}`);
+    }
+  };
+
   const syncFilesFromNativePath = async (rootPath: string) => {
     if (!tauriFs) return;
     const newFiles: FileItem[] = [];
@@ -849,6 +906,18 @@ Integrations:
 
       if (selected && typeof selected === 'string') {
         const normalizedPath = selected.replace(/\\/g, '/');
+        
+        // --- MEMORY-TO-DISK SYNC (v2.4.2) ---
+        if (files.length > 0 && !nativeProjectPath) {
+           const shouldDump = window.confirm(
+             "Ditemukan pekerjaan di memori (AURA Memory).\n\n" +
+             "Apakah Anda ingin menyimpan file yang sudah ada ke folder baru ini sebelum melakukan sinkronisasi?"
+           );
+           if (shouldDump) {
+             await saveAllToDisk(normalizedPath);
+           }
+        }
+
         setNativeProjectPath(normalizedPath);
         appendTerminalOutput([`[SYSTEM] Folder Native dipilih: ${normalizedPath}`, '[SYSTEM] Menyinkronkan file...']);
         
@@ -1066,25 +1135,24 @@ Integrations:
     setBottomTab('terminal');
     setShowBottomPanel(true);
 
-    // --- NATIVE SYNC GUARD (v2.4.0) ---
+    const sessionId = activeTerminalId;
+    const appendOutput = (data: string) => {
+      appendTerminalOutput(data, sessionId);
+    };
+
+    // --- NATIVE SYNC GUARD (v2.4.2) ---
     if (!nativeProjectPath) {
       const confirmSync = window.confirm(
         "AURA TERMINAL: Eksekusi perintah (seperti npm) membutuhkan file fisik di disk.\n\n" +
         "Folder proyek belum ditentukan. Ingin memilih folder sekarang untuk sinkronisasi?"
       );
       if (confirmSync) {
-        // Trigger folder selection logic (simplified here)
-        appendTerminalOutput('[SYSTEM] Silakan klik tombol "CLOSE FOLDER" dan pilih folder baru untuk aktivasi Native Mode.');
+        await openFolderNative();
         return;
       }
-      appendTerminalOutput('[ERROR] Gagal eksekusi: Perintah terminal membutuhkan Native Mode (Sinkronisasi Disk).');
+      appendOutput('[ERROR] Gagal eksekusi: Perintah terminal membutuhkan Native Mode (Sinkronisasi Disk).');
       return;
     }
-
-    const sessionId = activeTerminalId;
-    const appendOutput = (data: string) => {
-      appendTerminalOutput(data, sessionId);
-    };
 
     const cwdDisplay = nativeProjectPath || 'aura-project';
     appendOutput(`${cwdDisplay} $ ${val}`);
@@ -1409,7 +1477,7 @@ Integrations:
             </div>
             <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
             <div className="px-3 py-1.5 flex items-center gap-2 text-white/40 cursor-default">
-              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.0.0-PRO</span>
+              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.6.1-PRO</span>
             </div>
           </div>
         </div>

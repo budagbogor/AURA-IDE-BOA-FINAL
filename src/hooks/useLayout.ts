@@ -42,7 +42,7 @@ export const useLayout = () => {
   // Dimensions
   const [sidebarWidth, setSidebarWidth] = useState(260);
   const [bottomHeight, setBottomHeight] = useState(200);
-  const [aiPanelWidth, setAiPanelWidth] = useState(350);
+  const [aiPanelWidth, setAiPanelWidth] = useState(525);
 
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [isResizingBottom, setIsResizingBottom] = useState(false);
