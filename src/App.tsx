@@ -443,39 +443,42 @@ export default function App() {
     return () => window.removeEventListener('click', handleClick);
   }, []);
 
-  // --- RESTORE TAURI INITIALIZATION (v2.6.5-PRO) ---
+  // --- RESTORE TAURI INITIALIZATION (v2.6.6-PRO) ---
   useEffect(() => {
-    // Definisi helper deteksi runtime yang lebih ketat
+    // Definisi helper deteksi runtime yang sangat ketat
     const runtimeIsTauri = typeof window !== 'undefined' && 
-                         !!(window as any).__TAURI_INTERNALS__;
+                          !!(window as any).__TAURI_INTERNALS__;
 
     if (runtimeIsTauri) {
       const initTauri = async () => {
-        // Small delay to ensure Tauri internals are fully injected
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Tunggu hingga environment benar-benar siap
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         try {
-          // Initialize plugins individually for better stability
-          console.log('[DEBUG] Initializing Tauri Desktop Plugins...');
-          
+          // Gunakan variabel string agar Vite tidak melakukan static analysis berlebihan di browser
+          const pkgShell = '@tauri-apps/plugin-shell';
+          const pkgDialog = '@tauri-apps/plugin-dialog';
+          const pkgFs = '@tauri-apps/plugin-fs';
+
           try {
-            const { Command } = await import('@tauri-apps/plugin-shell');
+            const { Command } = await import(/* @vite-ignore */ pkgShell);
             if (Command) setTauriCommand(Command);
-          } catch (e) { console.error('Tauri Shell Plugin Fail:', e); }
+          } catch (e) { console.warn('Skip Shell:', e); }
 
           try {
-            const dialog = await import('@tauri-apps/plugin-dialog');
+            const dialog = await import(/* @vite-ignore */ pkgDialog);
             if (dialog) setTauriDialog(dialog);
-          } catch (e) { console.error('Tauri Dialog Plugin Fail:', e); }
+          } catch (e) { console.warn('Skip Dialog:', e); }
 
           try {
-            const fs = await import('@tauri-apps/plugin-fs');
+            const fs = await import(/* @vite-ignore */ pkgFs);
             if (fs) setTauriFs(fs);
-          } catch (e) { console.error('Tauri FS Plugin Fail:', e); }
+          } catch (e) { console.warn('Skip FS:', e); }
 
           appendTerminalOutput('[SYSTEM] Tauri Desktop Engine Initialized.');
+          console.log('[DEBUG] Tauri 2.6.6-PRO Initialized via Obfuscated Imports.');
         } catch (err: any) {
-          console.error('CRITICAL: General Tauri Init Failure:', err);
+          console.error('General Tauri Load Error:', err);
         }
       };
       initTauri();
@@ -1491,7 +1494,7 @@ Integrations:
             </div>
             <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
             <div className="px-3 py-1.5 flex items-center gap-2 text-white/40 cursor-default">
-              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.6.5-PRO</span>
+              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.6.6-PRO</span>
             </div>
           </div>
         </div>
