@@ -443,16 +443,14 @@ export default function App() {
     return () => window.removeEventListener('click', handleClick);
   }, []);
 
-  // --- RESTORE TAURI INITIALIZATION (v2.6.3-PRO) ---
+  /* --- TEMPORARILY DISABLED TAURI INIT TO FIX BLANK SCREEN (v2.6.4-PRO) ---
   useEffect(() => {
-    // Definisi helper deteksi runtime yang lebih ketat
     const runtimeIsTauri = typeof window !== 'undefined' && 
                          !!(window as any).__TAURI_INTERNALS__;
 
     if (runtimeIsTauri) {
       const initTauri = async () => {
         try {
-          // Dynamic imports dengan error handling mandiri per modul
           const { Command } = await import('@tauri-apps/plugin-shell');
           const dialog = await import('@tauri-apps/plugin-dialog');
           const fs = await import('@tauri-apps/plugin-fs');
@@ -462,15 +460,14 @@ export default function App() {
           if (fs) setTauriFs(fs);
           
           appendTerminalOutput('[SYSTEM] Tauri Desktop Engine Initialized.');
-          console.log('[DEBUG] Tauri plugins loaded successfully.');
         } catch (err: any) {
           console.error('CRITICAL: Tauri Plugin Load Failed:', err);
-          // Jangan panggil appendTerminalOutput jika kemungkinan crash
         }
       };
       initTauri();
     }
   }, [setTauriCommand, setTauriDialog, setTauriFs]);
+  */
 
 
 
@@ -1481,7 +1478,7 @@ Integrations:
             </div>
             <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
             <div className="px-3 py-1.5 flex items-center gap-2 text-white/40 cursor-default">
-              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.6.3-PRO</span>
+              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.6.4-PRO</span>
             </div>
           </div>
         </div>
