@@ -232,12 +232,12 @@ export const AiComposerPanel: React.FC<AiComposerPanelProps> = ({
             </div>
             
             <div className={cn(
-              "w-full p-4 rounded-2xl text-[11px] leading-relaxed shadow-xl max-w-full glass-card transition-all hover:border-white/20",
+              "w-full p-4 rounded-2xl text-[11px] leading-relaxed shadow-xl max-w-full glass-card transition-all hover:border-white/20 min-w-0 overflow-hidden",
               msg.role === 'user' 
                 ? "bg-blue-600/20 border-blue-500/40 text-blue-50 rounded-tr-none self-end" 
                 : "bg-white/5 border-white/10 text-gray-300 rounded-tl-none"
             )}>
-              <div className="prose prose-invert prose-sm max-w-none break-words whitespace-pre-wrap !text-[11px] !leading-normal">
+              <div className="prose prose-invert prose-sm max-w-none break-words whitespace-pre-wrap !text-[11px] !leading-normal overflow-x-auto overflow-y-hidden">
                 <Markdown
                   components={{
                     code({ node, inline, className, children, ...props }: any) {

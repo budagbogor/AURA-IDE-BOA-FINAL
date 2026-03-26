@@ -449,11 +449,11 @@ export default function App() {
       const initTauri = async () => {
         try {
           // Dynamic imports for browser compatibility
-          const shell = await import('@tauri-apps/plugin-shell');
+          const { Command } = await import('@tauri-apps/plugin-shell');
           const dialog = await import('@tauri-apps/plugin-dialog');
           const fs = await import('@tauri-apps/plugin-fs');
           
-          setTauriCommand(shell);
+          setTauriCommand(Command);
           setTauriDialog(dialog);
           setTauriFs(fs);
           
@@ -1477,7 +1477,7 @@ Integrations:
             </div>
             <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
             <div className="px-3 py-1.5 flex items-center gap-2 text-white/40 cursor-default">
-              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.6.1-PRO</span>
+              <Info size={14} /> <span className="text-[10px]">AURA AI IDE v2.6.2-PRO</span>
             </div>
           </div>
         </div>
